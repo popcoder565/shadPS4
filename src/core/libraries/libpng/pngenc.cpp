@@ -96,7 +96,7 @@ s32 PS4_SYSV_ABI scePngEncCreate(const OrbisPngEncCreateParam* param, void* memo
     pngh->info_ptr = png_create_info_struct(pngh->png_ptr);
     if (pngh->info_ptr == nullptr) {
         png_destroy_write_struct(&pngh->png_ptr, nullptr);
-        return false;
+        return ORBIS_PNG_ENC_ERROR_FATAL;
     }
 
     *handle = pngh;
