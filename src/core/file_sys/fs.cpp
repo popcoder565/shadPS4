@@ -180,7 +180,12 @@ std::optional<std::string> MntPoints::SanitizeGuestPath(std::string_view path) {
     if (path.empty() || path.length() > 255) {
         return std::nullopt;
     }
-    std::filesystem::path p(path);
+    // On Windows a leading "//" would otherwise be kept as a network root name
+    std::string collapsed(path);
+    collapsed.erase(std::unique(collapsed.begin(), collapsed.end(),
+                                [](char a, char b) { return a == '/' && b == '/'; }),
+                    collapsed.end());
+    std::filesystem::path p(collapsed);
     std::string normalized = p.lexically_normal().generic_string();
     if (normalized.length() > 255) {
         return std::nullopt;
