@@ -28,6 +28,7 @@ enum class ConditionOp : u32 {
     LT,
     LE,
     TRU,
+    O,
     U,
 };
 
