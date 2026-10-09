@@ -308,6 +308,8 @@ void Translator::EmitVectorAlu(const GcnInst& inst) {
         return V_CMP_F64(ConditionOp::GE, false, false, inst);
 
         //     V_CMP_{OP8}_I32
+    case Opcode::V_CMP_F_I32:
+        return V_CMP_U32(ConditionOp::F, true, false, inst);
     case Opcode::V_CMP_LT_I32:
         return V_CMP_U32(ConditionOp::LT, true, false, inst);
     case Opcode::V_CMP_EQ_I32:
@@ -320,20 +322,26 @@ void Translator::EmitVectorAlu(const GcnInst& inst) {
         return V_CMP_U32(ConditionOp::LG, true, false, inst);
     case Opcode::V_CMP_GE_I32:
         return V_CMP_U32(ConditionOp::GE, true, false, inst);
-    case Opcode::V_CMPX_LE_I32:
-        return V_CMP_U32(ConditionOp::LE, true, true, inst);
+    case Opcode::V_CMP_TRU_I32:
+        return V_CMP_U32(ConditionOp::TRU, true, false, inst);
 
         //     V_CMPX_{OP8}_I32
+    case Opcode::V_CMPX_F_I32:
+        return V_CMP_U32(ConditionOp::F, true, true, inst);
     case Opcode::V_CMPX_LT_I32:
         return V_CMP_U32(ConditionOp::LT, true, true, inst);
     case Opcode::V_CMPX_EQ_I32:
         return V_CMP_U32(ConditionOp::EQ, true, true, inst);
+    case Opcode::V_CMPX_LE_I32:
+        return V_CMP_U32(ConditionOp::LE, true, true, inst);
     case Opcode::V_CMPX_GT_I32:
         return V_CMP_U32(ConditionOp::GT, true, true, inst);
     case Opcode::V_CMPX_LG_I32:
         return V_CMP_U32(ConditionOp::LG, true, true, inst);
     case Opcode::V_CMPX_GE_I32:
         return V_CMP_U32(ConditionOp::GE, true, true, inst);
+    case Opcode::V_CMPX_TRU_I32:
+        return V_CMP_U32(ConditionOp::TRU, true, true, inst);
 
         //     V_CMP_{OP8}_U32
     case Opcode::V_CMP_F_U32:
@@ -390,24 +398,58 @@ void Translator::EmitVectorAlu(const GcnInst& inst) {
         return V_CMP_U64(ConditionOp::TRU, true, false, inst);
 
         //     V_CMPX_{OP8}_I64
+    case Opcode::V_CMPX_F_I64:
+        return V_CMP_U64(ConditionOp::F, true, true, inst);
+    case Opcode::V_CMPX_LT_I64:
+        return V_CMP_U64(ConditionOp::LT, true, true, inst);
     case Opcode::V_CMPX_EQ_I64:
         return V_CMP_U64(ConditionOp::EQ, true, true, inst);
+    case Opcode::V_CMPX_LE_I64:
+        return V_CMP_U64(ConditionOp::LE, true, true, inst);
+    case Opcode::V_CMPX_GT_I64:
+        return V_CMP_U64(ConditionOp::GT, true, true, inst);
+    case Opcode::V_CMPX_NE_I64:
+        return V_CMP_U64(ConditionOp::LG, true, true, inst);
+    case Opcode::V_CMPX_GE_I64:
+        return V_CMP_U64(ConditionOp::GE, true, true, inst);
+    case Opcode::V_CMPX_TRU_I64:
+        return V_CMP_U64(ConditionOp::TRU, true, true, inst);
 
         //     V_CMP_{OP8}_U64
-    case Opcode::V_CMP_EQ_U64:
-        return V_CMP_U64(ConditionOp::EQ, false, false, inst);
-    case Opcode::V_CMP_NE_U64:
-        return V_CMP_U64(ConditionOp::LG, false, false, inst);
-    case Opcode::V_CMP_GT_U64:
-        return V_CMP_U64(ConditionOp::GT, false, false, inst);
+    case Opcode::V_CMP_F_U64:
+        return V_CMP_U64(ConditionOp::F, false, false, inst);
     case Opcode::V_CMP_LT_U64:
         return V_CMP_U64(ConditionOp::LT, false, false, inst);
+    case Opcode::V_CMP_EQ_U64:
+        return V_CMP_U64(ConditionOp::EQ, false, false, inst);
+    case Opcode::V_CMP_LE_U64:
+        return V_CMP_U64(ConditionOp::LE, false, false, inst);
+    case Opcode::V_CMP_GT_U64:
+        return V_CMP_U64(ConditionOp::GT, false, false, inst);
+    case Opcode::V_CMP_NE_U64:
+        return V_CMP_U64(ConditionOp::LG, false, false, inst);
+    case Opcode::V_CMP_GE_U64:
+        return V_CMP_U64(ConditionOp::GE, false, false, inst);
+    case Opcode::V_CMP_TRU_U64:
+        return V_CMP_U64(ConditionOp::TRU, false, false, inst);
 
         //     V_CMPX_{OP8}_U64
+    case Opcode::V_CMPX_F_U64:
+        return V_CMP_U64(ConditionOp::F, false, true, inst);
+    case Opcode::V_CMPX_LT_U64:
+        return V_CMP_U64(ConditionOp::LT, false, true, inst);
     case Opcode::V_CMPX_EQ_U64:
         return V_CMP_U64(ConditionOp::EQ, false, true, inst);
+    case Opcode::V_CMPX_LE_U64:
+        return V_CMP_U64(ConditionOp::LE, false, true, inst);
+    case Opcode::V_CMPX_GT_U64:
+        return V_CMP_U64(ConditionOp::GT, false, true, inst);
     case Opcode::V_CMPX_LG_U64:
         return V_CMP_U64(ConditionOp::LG, false, true, inst);
+    case Opcode::V_CMPX_GE_U64:
+        return V_CMP_U64(ConditionOp::GE, false, true, inst);
+    case Opcode::V_CMPX_TRU_U64:
+        return V_CMP_U64(ConditionOp::TRU, false, true, inst);
 
     case Opcode::V_CMP_CLASS_F32:
         return V_CMP_CLASS_F32(inst);
