@@ -1083,7 +1083,7 @@ int PS4_SYSV_ABI sceRtcTickAddMonths(OrbisRtcTick* pTick1, OrbisRtcTick* pTick2,
     s64 s;
     s64 tempMonth;
 
-    sceRtcSetTick(&time, pTick1);
+    sceRtcSetTick(&time, pTick2);
 
     if (lAdd >= 0) {
         s = 1;
@@ -1167,7 +1167,7 @@ int PS4_SYSV_ABI sceRtcTickAddYears(OrbisRtcTick* pTick1, OrbisRtcTick* pTick2, 
         return ORBIS_OK;
     }
 
-    sceRtcSetTick(&time, pTick1);
+    sceRtcSetTick(&time, pTick2);
 
     time.year += lAdd;
 
