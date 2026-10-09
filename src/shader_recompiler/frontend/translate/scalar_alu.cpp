@@ -663,7 +663,7 @@ void Translator::S_BITCMP(bool compare_mode, u32 bits, const GcnInst& inst) {
                 const IR::U64 src0 = GetSrc64(inst.src[0]);
                 const IR::U64 bit{
                     ir.BitwiseAnd(ir.ShiftRightLogical(src0, bitpos), ir.Imm64(u64(1)))};
-                return ir.UConvert(32, bit);
+                return IR::U32{ir.CompositeExtract(ir.UnpackUint2x32(bit), 0)};
             }
             if (bits != 32) {
                 UNREACHABLE();
