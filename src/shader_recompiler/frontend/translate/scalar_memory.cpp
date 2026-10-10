@@ -32,6 +32,9 @@ void Translator::EmitScalarMemory(const GcnInst& inst) {
         return S_BUFFER_LOAD_DWORD(16, inst);
     case Opcode::S_MEMTIME:
         return S_MEMTIME(inst);
+    case Opcode::S_DCACHE_INV:
+    case Opcode::S_DCACHE_INV_VOL:
+        return ir.DeviceMemoryBarrier();
     default:
         LogMissingOpcode(inst);
     }

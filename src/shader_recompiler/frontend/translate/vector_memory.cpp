@@ -118,6 +118,9 @@ void Translator::EmitVectorMemory(const GcnInst& inst) {
         return BUFFER_ATOMIC<IR::F32>(AtomicOp::Fmax, inst);
     case Opcode::BUFFER_ATOMIC_FCMPSWAP:
         return BUFFER_ATOMIC<IR::F32>(AtomicOp::FCmpSwap, inst);
+    case Opcode::BUFFER_WBINVL1:
+    case Opcode::BUFFER_WBINVL1_SC:
+        return ir.DeviceMemoryBarrier();
 
         // MIMG
         // Image load operations

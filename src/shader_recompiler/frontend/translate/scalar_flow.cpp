@@ -24,6 +24,9 @@ void Translator::EmitFlowControl(const GcnInst& inst) {
     case Opcode::S_SETPC_B64:
     case Opcode::S_WAITCNT:
     case Opcode::S_NOP:
+    case Opcode::S_SLEEP:
+    case Opcode::S_ICACHE_INV:
+    case Opcode::S_SETVSKIP:
     case Opcode::S_ENDPGM:
     case Opcode::S_CBRANCH_EXECZ:
     case Opcode::S_CBRANCH_SCC0:
@@ -37,7 +40,7 @@ void Translator::EmitFlowControl(const GcnInst& inst) {
         S_SENDMSG(inst);
         return;
     default:
-        UNREACHABLE();
+        LogMissingOpcode(inst);
     }
 }
 
