@@ -591,13 +591,13 @@ s64 PS4_SYSV_ABI sceKernelRead(s32 fd, void* buf, u64 nbytes) {
 }
 
 s32 PS4_SYSV_ABI posix_mkdir(const char* path, u16 mode) {
+    if (path == nullptr) {
+        *__Error() = POSIX_EFAULT;
+        return -1;
+    }
     LOG_INFO(Kernel_Fs, "path = {} mode = {:#o}", path, mode);
     if (strlen(path) > 255) {
         *__Error() = POSIX_ENAMETOOLONG;
-        return -1;
-    }
-    if (path == nullptr) {
-        *__Error() = POSIX_ENOTDIR;
         return -1;
     }
     std::string sanitized_path(path);
