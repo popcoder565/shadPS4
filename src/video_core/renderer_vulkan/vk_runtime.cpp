@@ -616,7 +616,9 @@ void Runtime::SetBackingSamples(VideoCore::Image* image, u32 num_samples, bool c
         auto new_image_ci = backing->image.image_ci;
         new_image_ci.samples = LiverpoolToVK::NumSamples(num_samples, image->supported_samples);
 
+        const auto backing_index = backing - backing_images.data();
         new_backing = &backing_images.emplace_back();
+        backing = &backing_images[backing_index];
         new_backing->num_samples = num_samples;
         new_backing->image = VideoCore::UniqueImage{instance.GetDevice(), instance.GetAllocator()};
         new_backing->image.Create(new_image_ci);
