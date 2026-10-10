@@ -990,7 +990,7 @@ s32 PS4_SYSV_ABI posix_truncate(const char* path, s64 length) {
     std::error_code ec;
     fs::resize_file(host_path, static_cast<u64>(length), ec);
     if (ec) {
-        *__Error() = NativeToPosixErrno(ec.value());
+        *__Error() = NativeToPosixErrno(ec.default_error_condition().value());
         return -1;
     }
     return 0;
@@ -1036,7 +1036,7 @@ s32 PS4_SYSV_ABI posix_chmod(const char* path, u32 mode) {
     std::error_code ec;
     fs::permissions(host_path, static_cast<fs::perms>(mode & 07777), ec);
     if (ec) {
-        *__Error() = NativeToPosixErrno(ec.value());
+        *__Error() = NativeToPosixErrno(ec.default_error_condition().value());
         return -1;
     }
     return 0;
@@ -1081,7 +1081,7 @@ s32 PS4_SYSV_ABI posix_fchmod(s32 fd, u32 mode) {
     std::error_code ec;
     fs::permissions(file->m_host_name, static_cast<fs::perms>(mode & 07777), ec);
     if (ec) {
-        *__Error() = NativeToPosixErrno(ec.value());
+        *__Error() = NativeToPosixErrno(ec.default_error_condition().value());
         return -1;
     }
 
