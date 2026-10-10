@@ -315,6 +315,10 @@ public:
 
     void OnMap(VAddr address, size_t size) override {
         PageManager::Impl::OnMap(address, size);
+        Register(address, size);
+    }
+
+    void Register(VAddr address, size_t size) {
         uffdio_register reg;
         reg.range.start = address;
         reg.range.len = size;
@@ -347,7 +351,7 @@ public:
 
         auto regions = Core::Memory::Instance()->GetAddressSpace().GetUsableRegions();
         for (auto& region : regions) {
-            OnMap(region.lower(), region.upper());
+            Register(region.lower(), region.upper() - region.lower());
         }
         LOG_INFO(Common_Memory, "registered reserved memory with userfaultfd");
 
