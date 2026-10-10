@@ -607,20 +607,22 @@ int PS4_SYSV_ABI sceRtcGetTick(OrbisRtcDateTime* pTime, OrbisRtcTick* pTick) {
     if (isTimeValid != 0)
         return isTimeValid;
 
-    if (pTime->month > 2) {
-        pTime->month -= 3;
+    int month = pTime->month;
+    int year = pTime->year;
+    if (month > 2) {
+        month -= 3;
     } else {
-        pTime->month += 9;
-        pTime->year -= 1;
+        month += 9;
+        year -= 1;
     }
 
-    int c = pTime->year / 100;
-    int ya = pTime->year - 100 * c;
+    int c = year / 100;
+    int ya = year - 100 * c;
 
     u64 days;
     u64 msec;
 
-    days = ((146097 * c) >> 2) + ((1461 * ya) >> 2) + (153 * pTime->month + 2) / 5 + pTime->day;
+    days = ((146097 * c) >> 2) + ((1461 * ya) >> 2) + (153 * month + 2) / 5 + pTime->day;
     days -= 307;
     days *= 86400000000;
 
