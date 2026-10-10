@@ -211,7 +211,7 @@ s32 PS4_SYSV_ABI sceFiberInitializeImpl(OrbisFiber* fiber, const char* name, Orb
         /* Apply signature to start of stack */
         *(u64*)addr_context = kFiberStackSignature;
 
-        if (flags & FiberFlags::ContextSizeCheck) {
+        if (fiber->flags & FiberFlags::ContextSizeCheck) {
             u64* stack_start = reinterpret_cast<u64*>(fiber->context_start);
             u64* stack_end = reinterpret_cast<u64*>(fiber->context_end);
 
@@ -463,10 +463,8 @@ s32 PS4_SYSV_ABI sceFiberGetInfo(OrbisFiber* fiber, OrbisFiberInfo* fiber_info) 
 
         if (*stack_start == kFiberStackSignature) {
             u64* stack_ptr = stack_start + 1;
-            while (stack_ptr < stack_end) {
-                if (*stack_ptr == kFiberStackSizeCheck) {
-                    stack_ptr++;
-                }
+            while (stack_ptr < stack_end && *stack_ptr == kFiberStackSizeCheck) {
+                stack_ptr++;
             }
 
             stack_margin =
