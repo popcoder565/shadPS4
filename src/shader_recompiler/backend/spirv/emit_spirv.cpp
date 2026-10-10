@@ -433,7 +433,9 @@ void DefineEntryPoint(const Info& info, const RuntimeInfo& runtime_info, EmitCon
         if (stores_depth) {
             ctx.AddExecutionMode(main, spv::ExecutionMode::DepthReplacing);
         }
-        if (runtime_info.hw.fs.depth_before_shader) {
+        // Emulated clip distances discard in the shader, and with early fragment tests the
+        // discarded fragments would still write depth and stencil.
+        if (runtime_info.hw.fs.depth_before_shader && !runtime_info.hw.fs.clip_distance_emulation) {
             ctx.AddExecutionMode(main, spv::ExecutionMode::EarlyFragmentTests);
             ASSERT_MSG(!stores_depth, "DEPTH_BEFORE_SHADER enabled with depth exporting shader");
         }
