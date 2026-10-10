@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <chrono>
 
 #include "common/types.h"
@@ -57,11 +58,9 @@ public:
             }
 
             const auto rel_ms = std::chrono::ceil<std::chrono::milliseconds>(abs_time - now);
-            u64 res = WaitForSingleObjectEx(mtx, static_cast<u64>(rel_ms.count()), true);
-            if (res == WAIT_OBJECT_0) {
+            const auto wait_ms = static_cast<DWORD>(std::min<u64>(rel_ms.count(), INFINITE - 1));
+            if (WaitForSingleObjectEx(mtx, wait_ms, true) == WAIT_OBJECT_0) {
                 return true;
-            } else if (res == WAIT_TIMEOUT) {
-                return false;
             }
         }
 #else

@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <chrono>
 #include <sys/types.h>
 #include "common/types.h"
@@ -33,8 +34,9 @@ struct OrbisKernelTimespec {
 
     std::chrono::system_clock::time_point TimePoint() const noexcept {
         using namespace std::chrono;
-        const auto duration =
-            duration_cast<system_clock::duration>(seconds{tv_sec} + nanoseconds{tv_nsec});
+        constexpr s64 MaxSeconds = duration_cast<seconds>(nanoseconds::max()).count() - 1;
+        const auto duration = duration_cast<system_clock::duration>(
+            seconds{std::clamp(tv_sec, -MaxSeconds, MaxSeconds)} + nanoseconds{tv_nsec});
         return system_clock::time_point{duration};
     }
 };
