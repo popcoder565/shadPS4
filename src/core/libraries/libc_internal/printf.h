@@ -324,7 +324,7 @@ static inline size_t _ftoa(out_fct_type out, char* buffer, size_t idx, size_t ma
     // write code to replace this? Normal printf behavior is to print EVERY whole number digit which
     // can be 100s of characters overflowing your buffers == bad
     if (value > thres_max) {
-        return 0U;
+        return idx;
     }
 
     if (prec == 0U) {
