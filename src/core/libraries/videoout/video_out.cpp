@@ -75,8 +75,11 @@ s32 PS4_SYSV_ABI sceVideoOutDeleteFlipEvent(Kernel::OrbisKernelEqueue eq, s32 ha
     if (equeue == nullptr) {
         return ORBIS_VIDEO_OUT_ERROR_INVALID_EVENT_QUEUE;
     }
-    equeue->RemoveEvent(handle, Kernel::OrbisKernelEvent::Filter::VideoOut);
-    port->flip_events.erase(find(port->flip_events.begin(), port->flip_events.end(), eq));
+    equeue->RemoveEvent(static_cast<u64>(OrbisVideoOutInternalEventId::Flip),
+                        Kernel::OrbisKernelEvent::Filter::VideoOut);
+    if (const auto it = std::ranges::find(port->flip_events, eq); it != port->flip_events.end()) {
+        port->flip_events.erase(it);
+    }
     return ORBIS_OK;
 }
 
@@ -117,8 +120,12 @@ s32 PS4_SYSV_ABI sceVideoOutDeleteVblankEvent(Kernel::OrbisKernelEqueue eq, s32 
     if (equeue == nullptr) {
         return ORBIS_VIDEO_OUT_ERROR_INVALID_EVENT_QUEUE;
     }
-    equeue->RemoveEvent(handle, Kernel::OrbisKernelEvent::Filter::VideoOut);
-    port->vblank_events.erase(find(port->vblank_events.begin(), port->vblank_events.end(), eq));
+    equeue->RemoveEvent(static_cast<u64>(OrbisVideoOutInternalEventId::Vblank),
+                        Kernel::OrbisKernelEvent::Filter::VideoOut);
+    if (const auto it = std::ranges::find(port->vblank_events, eq);
+        it != port->vblank_events.end()) {
+        port->vblank_events.erase(it);
+    }
     return ORBIS_OK;
 }
 
