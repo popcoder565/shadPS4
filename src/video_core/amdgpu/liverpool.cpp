@@ -806,6 +806,11 @@ Liverpool::Task Liverpool::ProcessGraphics(std::span<const u32> dcb, std::span<c
                     RESUME_GFX(task);
                 }
                 task.handle.destroy();
+                if (indirect_buffer->chain) {
+                    // Execution doesn't return from a chained IB.
+                    dcb = {};
+                    continue;
+                }
                 break;
             }
             case PM4ItOpcode::IncrementDeCounter: {
