@@ -192,7 +192,7 @@ public:
         for (auto it : m_waiters) {
             Waiter* waiter = it;
 
-            if (!ConditionMet(*waiter)) {
+            if (waiter->ready || waiter->canceled || !ConditionMet(*waiter)) {
                 continue;
             }
 
@@ -212,16 +212,21 @@ public:
     void Cancel(u64 pattern, int* num_waiters) {
         std::scoped_lock lock(m_mutex);
 
-        if (num_waiters)
-            *num_waiters = static_cast<int>(m_waiters.size());
-
         m_bits = pattern;
 
+        int canceled = 0;
         for (Waiter* waiter : m_waiters) {
+            if (waiter->ready || waiter->canceled) {
+                continue;
+            }
             waiter->result = pattern;
             waiter->canceled = true;
             waiter->cv.notify_one();
+            canceled++;
         }
+
+        if (num_waiters)
+            *num_waiters = canceled;
     }
 
 private:
