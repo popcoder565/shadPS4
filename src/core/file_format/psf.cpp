@@ -109,15 +109,12 @@ bool PSF::Open(const std::vector<u8>& psf_buffer) {
     return true;
 }
 
-bool PSF::Encode(const std::filesystem::path& filepath) const {
+static bool WritePSFFile(const std::filesystem::path& filepath, const std::vector<u8>& psf_buffer) {
     Common::FS::IOFile file(filepath, Common::FS::FileAccessMode::Create);
     if (!file.IsOpen()) {
         return false;
     }
 
-    last_write = std::chrono::system_clock::now();
-
-    const auto psf_buffer = Encode();
     const size_t written = file.Write(psf_buffer);
     if (written != psf_buffer.size()) {
         LOG_ERROR(Core, "Failed to write PSF file. Written {} Expected {}", written,
@@ -125,6 +122,29 @@ bool PSF::Encode(const std::filesystem::path& filepath) const {
     }
     file.Close();
     return written == psf_buffer.size();
+}
+
+bool PSF::Encode(const std::filesystem::path& filepath) const {
+    last_write = std::chrono::system_clock::now();
+
+    const auto psf_buffer = Encode();
+
+    // Write a new file and move it over the old one, so that an interrupted write can't leave the
+    // PSF file empty or truncated.
+    auto temp_path = filepath;
+    temp_path += ".tmp";
+    std::error_code ec;
+    if (!WritePSFFile(temp_path, psf_buffer)) {
+        std::filesystem::remove(temp_path, ec);
+        return false;
+    }
+    std::filesystem::rename(temp_path, filepath, ec);
+    if (!ec) {
+        return true;
+    }
+    LOG_WARNING(Core, "Failed to replace PSF file, writing it in place: {}", ec.message());
+    std::filesystem::remove(temp_path, ec);
+    return WritePSFFile(filepath, psf_buffer);
 }
 
 std::vector<u8> PSF::Encode() const {
