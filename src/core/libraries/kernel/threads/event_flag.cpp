@@ -145,6 +145,7 @@ public:
         if (infinite) {
             waiter.cv.wait(lock, wake);
         } else {
+            const auto start = std::chrono::steady_clock::now();
             if (!waiter.cv.wait_for(lock, std::chrono::microseconds(timeout), wake)) {
 
                 RemoveWaiter(waiter);
@@ -155,6 +156,10 @@ public:
                 *ptr_micros = 0;
                 return ORBIS_KERNEL_ERROR_ETIMEDOUT;
             }
+            const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(
+                                     std::chrono::steady_clock::now() - start)
+                                     .count();
+            *ptr_micros = elapsed >= timeout ? 0 : timeout - static_cast<u32>(elapsed);
         }
 
         RemoveWaiter(waiter);
