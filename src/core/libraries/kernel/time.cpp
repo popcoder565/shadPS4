@@ -499,7 +499,7 @@ s32 PS4_SYSV_ABI sceKernelConvertUtcToLocaltime(time_t time, time_t* local_time,
 #ifdef _WIN32
     TIME_ZONE_INFORMATION tz{};
     DWORD res = GetTimeZoneInformation(&tz);
-    *local_time = time - tz.Bias;
+    *local_time = time - tz.Bias * 60 + (res == TIME_ZONE_ID_DAYLIGHT ? -_dstbias : 0);
 
     if (st != nullptr) {
         st->t = time;
@@ -519,7 +519,7 @@ s32 PS4_SYSV_ABI sceKernelConvertUtcToLocaltime(time_t time, time_t* local_time,
 #endif // __APPLE__
     auto info = time_zone->get_info(std::chrono::system_clock::now());
 
-    *local_time = info.offset.count() + info.save.count() * 60 + time;
+    *local_time = info.offset.count() + time;
 
     if (st != nullptr) {
         st->t = time;
