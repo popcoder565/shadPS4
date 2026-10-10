@@ -75,6 +75,17 @@ public:
         }
     }
 
+    bool try_unlock_shared() {
+        std::lock_guard<std::mutex> lock(mtx);
+        if (readers == 0) {
+            return false;
+        }
+        if (--readers == 0) {
+            cv.notify_all();
+        }
+        return true;
+    }
+
 private:
     std::mutex mtx;
     std::condition_variable cv;

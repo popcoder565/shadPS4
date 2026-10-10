@@ -226,13 +226,12 @@ int PS4_SYSV_ABI posix_pthread_rwlock_unlock(PthreadRwlockT* rwlock) {
     if (prwlock->owner == curthread) {
         prwlock->owner = nullptr;
         prwlock->lock.unlock();
-    } else {
-        if (prwlock->owner == nullptr) {
-            curthread->rdlock_count--;
-        }
-        prwlock->lock.unlock_shared();
+        return 0;
     }
-
+    if (prwlock->owner != nullptr || !prwlock->lock.try_unlock_shared()) {
+        return POSIX_EPERM;
+    }
+    curthread->rdlock_count--;
     return 0;
 }
 
