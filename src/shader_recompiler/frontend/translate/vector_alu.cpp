@@ -1330,23 +1330,7 @@ void Translator::V_CMP_U64(ConditionOp op, bool is_signed, bool set_exec, const 
 void Translator::V_CMP_CLASS_F32(const GcnInst& inst) {
     const IR::F32 src0{GetSrc<IR::F32>(inst.src[0])};
     const IR::U32 src1{GetSrc(inst.src[1])};
-    IR::U1 value;
-    if (src1.IsImmediate()) {
-        const auto class_mask = static_cast<IR::FloatClassFunc>(src1.U32());
-        if ((class_mask & IR::FloatClassFunc::NaN) == IR::FloatClassFunc::NaN) {
-            value = ir.FPIsNan(src0);
-        } else if ((class_mask & IR::FloatClassFunc::Infinity) == IR::FloatClassFunc::Infinity) {
-            value = ir.FPIsInf(src0);
-        } else if ((class_mask & IR::FloatClassFunc::Negative) == IR::FloatClassFunc::Negative) {
-            value = ir.FPLessThanEqual(src0, ir.Imm32(-0.f));
-        } else {
-            UNREACHABLE_MSG("Unsupported float class mask: {:#x}", static_cast<u32>(class_mask));
-        }
-    } else {
-        // We don't know the type yet, delay its resolution.
-        value = ir.FPCmpClass32(src0, src1);
-    }
-    SetDst64(inst.dst[1], ir.Ballot(value));
+    SetDst64(inst.dst[1], ir.Ballot(ir.FPCmpClass32(src0, src1)));
 }
 
 // VOP3a

@@ -8,20 +8,50 @@
 namespace Shader::Optimization {
 
 static void LowerCmpClass(IR::Block& block, IR::Inst& inst) {
-    ASSERT_MSG(inst.Arg(1).IsImmediate(), "Unable to resolve compare operation");
-    const auto class_mask = static_cast<IR::FloatClassFunc>(inst.Arg(1).U32());
-    if ((class_mask & IR::FloatClassFunc::NaN) == IR::FloatClassFunc::NaN) {
-        inst.ReplaceOpcode(IR::Opcode::FPIsNan32);
-    } else if ((class_mask & IR::FloatClassFunc::Infinity) == IR::FloatClassFunc::Infinity) {
-        inst.ReplaceOpcode(IR::Opcode::FPIsInf32);
-    } else if ((class_mask & IR::FloatClassFunc::Finite) == IR::FloatClassFunc::Finite) {
-        IR::IREmitter ir{block, IR::Block::InstructionList::s_iterator_to(inst)};
-        const IR::F32 value = IR::F32{inst.Arg(0)};
-        inst.ReplaceUsesWithAndRemove(
-            ir.LogicalNot(ir.LogicalOr(ir.FPIsNan(value), ir.FPIsInf(value))));
-    } else {
-        UNREACHABLE();
+    IR::IREmitter ir{block, IR::Block::InstructionList::s_iterator_to(inst)};
+    const IR::F32 value = IR::F32{inst.Arg(0)};
+    if (inst.Arg(1).IsImmediate()) {
+        const auto class_mask = static_cast<IR::FloatClassFunc>(inst.Arg(1).U32());
+        if (class_mask == IR::FloatClassFunc::NaN) {
+            inst.ReplaceOpcode(IR::Opcode::FPIsNan32);
+            return;
+        }
+        if (class_mask == IR::FloatClassFunc::Infinity) {
+            inst.ReplaceOpcode(IR::Opcode::FPIsInf32);
+            return;
+        }
+        if (class_mask == IR::FloatClassFunc::Finite) {
+            inst.ReplaceUsesWithAndRemove(
+                ir.LogicalNot(ir.LogicalOr(ir.FPIsNan(value), ir.FPIsInf(value))));
+            return;
+        }
     }
+
+    // Negative zero, denormal, normal and infinity are mask bits 5 to 2, mirroring the positive
+    // classes in bits 6 to 9. NaN classes don't depend on the sign.
+    const IR::U32 bits = ir.BitCast<IR::U32>(value);
+    const IR::U32 magnitude = ir.BitwiseAnd(bits, ir.Imm32(0x7fffffffu));
+    const auto magnitude_below = [&](u32 limit) {
+        return ir.ILessThan(magnitude, ir.Imm32(limit), false);
+    };
+    const IR::U32 nan_class =
+        IR::U32{ir.Select(magnitude_below(0x7fc00000u), ir.Imm32(0u), ir.Imm32(1u))};
+    const IR::U32 inf_class =
+        IR::U32{ir.Select(ir.IEqual(magnitude, ir.Imm32(0x7f800000u)), ir.Imm32(9u), nan_class)};
+    const IR::U32 normal_class =
+        IR::U32{ir.Select(magnitude_below(0x7f800000u), ir.Imm32(8u), inf_class)};
+    const IR::U32 denorm_class =
+        IR::U32{ir.Select(ir.IEqual(magnitude, ir.Imm32(0u)), ir.Imm32(6u), ir.Imm32(7u))};
+    const IR::U32 positive_class =
+        IR::U32{ir.Select(magnitude_below(0x00800000u), denorm_class, normal_class)};
+    const IR::U1 negative =
+        ir.LogicalAnd(ir.ILessThan(bits, ir.Imm32(0u), true),
+                      ir.ILessThanEqual(magnitude, ir.Imm32(0x7f800000u), false));
+    const IR::U32 class_index =
+        IR::U32{ir.Select(negative, ir.ISub(ir.Imm32(11u), positive_class), positive_class)};
+    const IR::U32 class_bit = IR::U32{ir.ShiftLeftLogical(ir.Imm32(1u), class_index)};
+    inst.ReplaceUsesWithAndRemove(
+        ir.INotEqual(ir.BitwiseAnd(IR::U32{inst.Arg(1)}, class_bit), ir.Imm32(0u)));
 }
 
 static void LowerPackedAncillary(IR::Inst& value) {
