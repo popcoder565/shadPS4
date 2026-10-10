@@ -122,8 +122,7 @@ constexpr std::array<InstFormat, 45> InstructionFormatSOP2 = {{
     {InstClass::ScalarBitField, InstCategory::ScalarALU, 2, 1, ScalarType::Sint64,
      ScalarType::Sint64},
     // 43 = S_CBRANCH_G_FORK
-    {InstClass::ScalarProgFlow, InstCategory::FlowControl, 2, 1, ScalarType::Undefined,
-     ScalarType::Undefined},
+    {InstClass::ScalarProgFlow, InstCategory::FlowControl, 2, 1, ScalarType::Any, ScalarType::Any},
     // 44 = S_ABSDIFF_I32
     {InstClass::ScalarAbs, InstCategory::ScalarALU, 2, 1, ScalarType::Sint32, ScalarType::Sint32},
 }};
@@ -163,8 +162,7 @@ constexpr std::array<InstFormat, 22> InstructionFormatSOPK = {{
     // 16 = S_MULK_I32
     {InstClass::ScalarArith, InstCategory::ScalarALU, 0, 1, ScalarType::Sint32, ScalarType::Sint32},
     // 17 = S_CBRANCH_I_FORK
-    {InstClass::ScalarProgFlow, InstCategory::FlowControl, 0, 1, ScalarType::Undefined,
-     ScalarType::Undefined},
+    {InstClass::ScalarProgFlow, InstCategory::FlowControl, 0, 1, ScalarType::Any, ScalarType::Any},
     // 18 = S_GETREG_B32
     {InstClass::ScalarProgFlow, InstCategory::FlowControl, 0, 1, ScalarType::Uint32,
      ScalarType::Uint32},
@@ -314,8 +312,7 @@ constexpr std::array<InstFormat, 54> InstructionFormatSOP1 = {{
     {InstClass::ScalarMovRel, InstCategory::ScalarALU, 1, 1, ScalarType::Uint64,
      ScalarType::Uint64},
     // 50 = S_CBRANCH_JOIN
-    {InstClass::ScalarProgFlow, InstCategory::FlowControl, 1, 1, ScalarType::Undefined,
-     ScalarType::Undefined},
+    {InstClass::ScalarProgFlow, InstCategory::FlowControl, 1, 1, ScalarType::Any, ScalarType::Any},
     {},
     // 52 = S_ABS_I32
     {InstClass::ScalarAbs, InstCategory::ScalarALU, 1, 1, ScalarType::Sint32, ScalarType::Sint32},
@@ -357,8 +354,7 @@ constexpr std::array<InstFormat, 17> InstructionFormatSOPC = {{
     // 15 = S_BITCMP1_B64
     {InstClass::ScalarCmp, InstCategory::ScalarALU, 2, 1, ScalarType::Uint64, ScalarType::Uint64},
     // 16 = S_SETVSKIP
-    {InstClass::ScalarProgFlow, InstCategory::FlowControl, 2, 1, ScalarType::Undefined,
-     ScalarType::Undefined},
+    {InstClass::ScalarProgFlow, InstCategory::FlowControl, 2, 1, ScalarType::Any, ScalarType::Any},
 }};
 
 constexpr std::array<InstFormat, 27> InstructionFormatSOPP = {{
@@ -467,13 +463,11 @@ constexpr std::array<InstFormat, 32> InstructionFormatSMRD = {{
     {},
     {},
     // 29 = S_DCACHE_INV_VOL
-    {InstClass::ScalarMemUt, InstCategory::ScalarMemory, 1, 1, ScalarType::Undefined,
-     ScalarType::Undefined},
+    {InstClass::ScalarMemUt, InstCategory::ScalarMemory, 1, 1, ScalarType::Any, ScalarType::Any},
     // 30 = S_MEMTIME
     {InstClass::ScalarMemUt, InstCategory::ScalarMemory, 0, 1, ScalarType::Any, ScalarType::Uint64},
     // 31 = S_DCACHE_INV
-    {InstClass::ScalarMemUt, InstCategory::ScalarMemory, 1, 1, ScalarType::Undefined,
-     ScalarType::Undefined},
+    {InstClass::ScalarMemUt, InstCategory::ScalarMemory, 1, 1, ScalarType::Any, ScalarType::Any},
 }};
 
 constexpr std::array<InstFormat, 59> InstructionFormatVOP2 = {{
@@ -1666,8 +1660,7 @@ constexpr std::array<InstFormat, 883> InstructionFormatVOP3 = {
      {},
      {},
      // 384 = V_NOP
-     {InstClass::VectorMisc, InstCategory::VectorALU, 0, 1, ScalarType::Undefined,
-      ScalarType::Undefined},
+     {InstClass::VectorMisc, InstCategory::VectorALU, 0, 1, ScalarType::Any, ScalarType::Any},
      // 385 = V_MOV_B32
      {InstClass::VectorRegMov, InstCategory::VectorALU, 1, 1, ScalarType::Uint32,
       ScalarType::Uint32},
@@ -1715,17 +1708,17 @@ constexpr std::array<InstFormat, 883> InstructionFormatVOP3 = {
      {InstClass::VectorConv, InstCategory::VectorALU, 1, 1, ScalarType::Float32,
       ScalarType::Float64},
      // 401 = V_CVT_F32_UBYTE0
-     {InstClass::VectorConv, InstCategory::VectorALU, 1, 1, ScalarType::Undefined,
-      ScalarType::Undefined},
+     {InstClass::VectorConv, InstCategory::VectorALU, 1, 1, ScalarType::Uint32,
+      ScalarType::Float32},
      // 402 = V_CVT_F32_UBYTE1
-     {InstClass::VectorConv, InstCategory::VectorALU, 1, 1, ScalarType::Undefined,
-      ScalarType::Undefined},
+     {InstClass::VectorConv, InstCategory::VectorALU, 1, 1, ScalarType::Uint32,
+      ScalarType::Float32},
      // 403 = V_CVT_F32_UBYTE2
-     {InstClass::VectorConv, InstCategory::VectorALU, 1, 1, ScalarType::Undefined,
-      ScalarType::Undefined},
+     {InstClass::VectorConv, InstCategory::VectorALU, 1, 1, ScalarType::Uint32,
+      ScalarType::Float32},
      // 404 = V_CVT_F32_UBYTE3
-     {InstClass::VectorConv, InstCategory::VectorALU, 1, 1, ScalarType::Undefined,
-      ScalarType::Undefined},
+     {InstClass::VectorConv, InstCategory::VectorALU, 1, 1, ScalarType::Uint32,
+      ScalarType::Float32},
      // 405 = V_CVT_U32_F64
      {InstClass::VectorConv, InstCategory::VectorALU, 1, 1, ScalarType::Float64,
       ScalarType::Uint32},
@@ -3360,29 +3353,23 @@ constexpr std::array<InstFormat, 256> InstructionFormatDS = {{
     {InstClass::DsAtomicMinMax32, InstCategory::DataShare, 3, 1, ScalarType::Float32,
      ScalarType::Float32},
     // 20 = DS_NOP
-    {InstClass::DsDataShareMisc, InstCategory::DataShare, 3, 1, ScalarType::Undefined,
-     ScalarType::Undefined},
+    {InstClass::DsDataShareMisc, InstCategory::DataShare, 3, 1, ScalarType::Any, ScalarType::Any},
     {},
     {},
     {},
     // 24 = DS_GWS_SEMA_RELEASE_ALL
-    {InstClass::GdsSync, InstCategory::DataShare, 3, 1, ScalarType::Undefined,
-     ScalarType::Undefined},
+    {InstClass::GdsSync, InstCategory::DataShare, 3, 1, ScalarType::Uint32, ScalarType::Uint32},
     // 25 = DS_GWS_INIT
-    {InstClass::GdsSync, InstCategory::DataShare, 3, 1, ScalarType::Undefined,
-     ScalarType::Undefined},
+    {InstClass::GdsSync, InstCategory::DataShare, 3, 1, ScalarType::Uint32, ScalarType::Uint32},
     // 26 = DS_GWS_SEMA_V
-    {InstClass::GdsSync, InstCategory::DataShare, 3, 1, ScalarType::Undefined,
-     ScalarType::Undefined},
+    {InstClass::GdsSync, InstCategory::DataShare, 3, 1, ScalarType::Uint32, ScalarType::Uint32},
     // 27 = DS_GWS_SEMA_BR
-    {InstClass::GdsSync, InstCategory::DataShare, 3, 1, ScalarType::Undefined,
-     ScalarType::Undefined},
+    {InstClass::GdsSync, InstCategory::DataShare, 3, 1, ScalarType::Uint32, ScalarType::Uint32},
     // 28 = DS_GWS_SEMA_P
-    {InstClass::GdsSync, InstCategory::DataShare, 3, 1, ScalarType::Undefined,
-     ScalarType::Undefined},
+    {InstClass::GdsSync, InstCategory::DataShare, 3, 1, ScalarType::Uint32, ScalarType::Uint32},
     // 29 = DS_GWS_BARRIER
-    {InstClass::ScalarSync, InstCategory::FlowControl, 3, 1, ScalarType::Undefined,
-     ScalarType::Undefined},
+    {InstClass::ScalarSync, InstCategory::FlowControl, 3, 1, ScalarType::Uint32,
+     ScalarType::Uint32},
     // 30 = DS_WRITE_B8
     {InstClass::DsIdxWr, InstCategory::DataShare, 3, 1, ScalarType::Uint32, ScalarType::Uint32},
     // 31 = DS_WRITE_B16
@@ -4032,11 +4019,11 @@ constexpr std::array<InstFormat, 114> InstructionFormatMUBUF = {{
     {},
     {},
     // 112 = BUFFER_WBINVL1_SC
-    {InstClass::VectorMemL1Cache, InstCategory::VectorMemory, 4, 1, ScalarType::Undefined,
-     ScalarType::Undefined},
+    {InstClass::VectorMemL1Cache, InstCategory::VectorMemory, 4, 1, ScalarType::Any,
+     ScalarType::Any},
     // 113 = BUFFER_WBINVL1
-    {InstClass::VectorMemL1Cache, InstCategory::VectorMemory, 4, 1, ScalarType::Undefined,
-     ScalarType::Undefined},
+    {InstClass::VectorMemL1Cache, InstCategory::VectorMemory, 4, 1, ScalarType::Any,
+     ScalarType::Any},
 }};
 
 constexpr std::array<InstFormat, 8> InstructionFormatMTBUF = {{
@@ -4343,26 +4330,26 @@ constexpr std::array<InstFormat, 112> InstructionFormatMIMG = {{
     {InstClass::VectorMemImgSmp, InstCategory::VectorMemory, 4, 1, ScalarType::Float32,
      ScalarType::Float32},
     // 105 = IMAGE_SAMPLE_CD_CL
-    {InstClass::VectorMemImgSmp, InstCategory::VectorMemory, 4, 1, ScalarType::Undefined,
-     ScalarType::Undefined},
+    {InstClass::VectorMemImgSmp, InstCategory::VectorMemory, 4, 1, ScalarType::Float32,
+     ScalarType::Float32},
     // 106 = IMAGE_SAMPLE_C_CD
-    {InstClass::VectorMemImgSmp, InstCategory::VectorMemory, 4, 1, ScalarType::Undefined,
-     ScalarType::Undefined},
+    {InstClass::VectorMemImgSmp, InstCategory::VectorMemory, 4, 1, ScalarType::Float32,
+     ScalarType::Float32},
     // 107 = IMAGE_SAMPLE_C_CD_CL
-    {InstClass::VectorMemImgSmp, InstCategory::VectorMemory, 4, 1, ScalarType::Undefined,
-     ScalarType::Undefined},
+    {InstClass::VectorMemImgSmp, InstCategory::VectorMemory, 4, 1, ScalarType::Float32,
+     ScalarType::Float32},
     // 108 = IMAGE_SAMPLE_CD_O
-    {InstClass::VectorMemImgSmp, InstCategory::VectorMemory, 4, 1, ScalarType::Undefined,
-     ScalarType::Undefined},
+    {InstClass::VectorMemImgSmp, InstCategory::VectorMemory, 4, 1, ScalarType::Float32,
+     ScalarType::Float32},
     // 109 = IMAGE_SAMPLE_CD_CL_O
-    {InstClass::VectorMemImgSmp, InstCategory::VectorMemory, 4, 1, ScalarType::Undefined,
-     ScalarType::Undefined},
+    {InstClass::VectorMemImgSmp, InstCategory::VectorMemory, 4, 1, ScalarType::Float32,
+     ScalarType::Float32},
     // 110 = IMAGE_SAMPLE_C_CD_O
-    {InstClass::VectorMemImgSmp, InstCategory::VectorMemory, 4, 1, ScalarType::Undefined,
-     ScalarType::Undefined},
+    {InstClass::VectorMemImgSmp, InstCategory::VectorMemory, 4, 1, ScalarType::Float32,
+     ScalarType::Float32},
     // 111 = IMAGE_SAMPLE_C_CD_CL_O
-    {InstClass::VectorMemImgSmp, InstCategory::VectorMemory, 4, 1, ScalarType::Undefined,
-     ScalarType::Undefined},
+    {InstClass::VectorMemImgSmp, InstCategory::VectorMemory, 4, 1, ScalarType::Float32,
+     ScalarType::Float32},
 }};
 
 constexpr std::array<InstFormat, 1> InstructionFormatEXP = {{
