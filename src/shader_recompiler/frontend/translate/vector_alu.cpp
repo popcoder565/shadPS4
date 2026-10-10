@@ -957,7 +957,10 @@ void Translator::V_CVT_F16_F32(const GcnInst& inst) {
 }
 
 void Translator::V_CVT_F32_F16(const GcnInst& inst) {
-    const IR::U32 src0 = GetSrc(inst.src[0]);
+    // Input modifiers apply to the f16 sign bit, not bit 31 of the source register
+    InstOperand src_operand = inst.src[0];
+    src_operand.input_modifier = {};
+    const IR::U32 src0 = GetSrc(src_operand);
 
     IR::F32 src0l;
     if (profile.support_float16) {
@@ -968,7 +971,8 @@ void Translator::V_CVT_F32_F16(const GcnInst& inst) {
         src0l = IR::F32{ir.CompositeExtract(unpacked, 0)};
     }
 
-    SetDst(inst.dst[0], src0l);
+    const auto& modifiers = inst.src[0].input_modifier;
+    SetDst(inst.dst[0], IR::F32{ir.FPAbsNeg(src0l, modifiers.abs, modifiers.neg)});
 }
 
 void Translator::V_CVT_RPI_I32_F32(const GcnInst& inst) {
