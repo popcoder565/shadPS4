@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2026 shadPS4 Emulator Project
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include <mutex>
 #include <queue>
 
 #include "common/logging/log.h"
@@ -117,20 +118,24 @@ int PS4_SYSV_ABI sceUserServiceGetDiscPlayerFlag() {
 }
 
 std::queue<OrbisUserServiceEvent> user_service_event_queue = {};
+std::mutex user_service_event_mutex;
 
 void AddUserServiceEvent(const OrbisUserServiceEvent e) {
     LOG_DEBUG(Lib_UserService, "Event added to queue: {} {}", (u8)e.event, e.userId);
+    std::scoped_lock lock{user_service_event_mutex};
     user_service_event_queue.push(e);
 }
 
 s32 PS4_SYSV_ABI sceUserServiceGetEvent(OrbisUserServiceEvent* event) {
     LOG_TRACE(Lib_UserService, "called");
 
+    std::unique_lock lock{user_service_event_mutex};
     if (!user_service_event_queue.empty()) {
-        OrbisUserServiceEvent& temp = user_service_event_queue.front();
+        const OrbisUserServiceEvent temp = user_service_event_queue.front();
+        user_service_event_queue.pop();
+        lock.unlock();
         event->event = temp.event;
         event->userId = temp.userId;
-        user_service_event_queue.pop();
         Libraries::Np::NpManager::NotifyNpStateFromUserServiceEvent(temp.event, temp.userId);
         LOG_INFO(Lib_UserService, "Event processed by the game: {} {}", (u8)temp.event,
                  temp.userId);
