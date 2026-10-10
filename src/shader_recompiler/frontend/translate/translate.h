@@ -190,6 +190,7 @@ public:
     void V_SUBB_U32(const GcnInst& inst);
     void V_SUBBREV_U32(const GcnInst& inst);
     void V_LDEXP_F32(const GcnInst& inst);
+    void V_LDEXP_F64(const GcnInst& inst);
     void V_CVT_PKNORM_U16_F32(const GcnInst& inst);
     void V_CVT_PKNORM_I16_F32(const GcnInst& inst);
     void V_CVT_PKRTZ_F16_F32(const GcnInst& inst);
@@ -234,6 +235,7 @@ public:
     void V_RCP_F64(const GcnInst& inst);
     void V_RSQ_F32(const GcnInst& inst);
     void V_RSQ_F64(const GcnInst& inst);
+    void V_SQRT_F64(const GcnInst& inst);
     void V_SQRT_F32(const GcnInst& inst);
     void V_SIN_F32(const GcnInst& inst);
     void V_COS_F32(const GcnInst& inst);

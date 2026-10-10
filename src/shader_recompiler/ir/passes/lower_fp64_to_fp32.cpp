@@ -68,6 +68,10 @@ static IR::Opcode Replace(IR::Opcode op) {
         return IR::Opcode::FPNeg32;
     case IR::Opcode::FPRecip64:
         return IR::Opcode::FPRecip32;
+    case IR::Opcode::FPSqrt64:
+        return IR::Opcode::FPSqrt;
+    case IR::Opcode::FPLdexp64:
+        return IR::Opcode::FPLdexp;
     case IR::Opcode::FPRecipSqrt64:
         return IR::Opcode::FPRecipSqrt32;
     case IR::Opcode::FPSaturate64:

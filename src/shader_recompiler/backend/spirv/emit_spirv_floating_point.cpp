@@ -117,6 +117,10 @@ Id EmitFPLdexp(EmitContext& ctx, Id value, Id exp) {
     return ctx.OpLdexp(ctx.F32[1], value, exp);
 }
 
+Id EmitFPLdexp64(EmitContext& ctx, Id value, Id exp) {
+    return ctx.OpLdexp(ctx.F64[1], value, exp);
+}
+
 Id EmitFPLog2(EmitContext& ctx, Id value) {
     return ctx.OpLog2(ctx.F32[1], value);
 }
@@ -139,6 +143,10 @@ Id EmitFPRecipSqrt64(EmitContext& ctx, Id value) {
 
 Id EmitFPSqrt(EmitContext& ctx, Id value) {
     return ctx.OpSqrt(ctx.F32[1], value);
+}
+
+Id EmitFPSqrt64(EmitContext& ctx, Id value) {
+    return ctx.OpSqrt(ctx.F64[1], value);
 }
 
 Id EmitFPSaturate32(EmitContext& ctx, Id value) {

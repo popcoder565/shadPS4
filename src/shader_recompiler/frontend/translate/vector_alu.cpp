@@ -95,6 +95,8 @@ void Translator::EmitVectorAlu(const GcnInst& inst) {
         return V_SUBBREV_U32(inst);
     case Opcode::V_LDEXP_F32:
         return V_LDEXP_F32(inst);
+    case Opcode::V_LDEXP_F64:
+        return V_LDEXP_F64(inst);
     case Opcode::V_CVT_PKNORM_U16_F32:
         return V_CVT_PKNORM_U16_F32(inst);
     case Opcode::V_CVT_PKNORM_I16_F32:
@@ -187,6 +189,8 @@ void Translator::EmitVectorAlu(const GcnInst& inst) {
         return V_RCP_F64(inst);
     case Opcode::V_RSQ_F64:
         return V_RSQ_F64(inst);
+    case Opcode::V_SQRT_F64:
+        return V_SQRT_F64(inst);
     case Opcode::V_RCP_IFLAG_F32:
         return V_RCP_F32(inst);
     case Opcode::V_RCP_CLAMP_F32:
@@ -844,6 +848,12 @@ void Translator::V_LDEXP_F32(const GcnInst& inst) {
     SetDst(inst.dst[0], ir.FPLdexp(src0, src1));
 }
 
+void Translator::V_LDEXP_F64(const GcnInst& inst) {
+    const IR::F64 src0{GetSrc64<IR::F64>(inst.src[0])};
+    const IR::U32 src1{GetSrc(inst.src[1])};
+    SetDst64(inst.dst[0], ir.FPLdexp(src0, src1));
+}
+
 void Translator::V_CVT_PKNORM_U16_F32(const GcnInst& inst) {
     const IR::Value vec_f32 =
         ir.CompositeConstruct(GetSrc<IR::F32>(inst.src[0]), GetSrc<IR::F32>(inst.src[1]));
@@ -1101,6 +1111,11 @@ void Translator::V_RCP_F64(const GcnInst& inst) {
 void Translator::V_RSQ_F64(const GcnInst& inst) {
     const IR::F64 src0{GetSrc64<IR::F64>(inst.src[0])};
     SetDst64(inst.dst[0], ir.FPRecipSqrt(src0));
+}
+
+void Translator::V_SQRT_F64(const GcnInst& inst) {
+    const IR::F64 src0{GetSrc64<IR::F64>(inst.src[0])};
+    SetDst64(inst.dst[0], ir.FPSqrt(src0));
 }
 
 void Translator::V_RSQ_F32(const GcnInst& inst) {

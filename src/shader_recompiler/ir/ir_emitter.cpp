@@ -1128,8 +1128,15 @@ F32 IREmitter::FPExp2(const F32& value) {
     return Inst<F32>(Opcode::FPExp2, value);
 }
 
-F32 IREmitter::FPLdexp(const F32& value, const U32& exp) {
-    return Inst<F32>(Opcode::FPLdexp, value, exp);
+F32F64 IREmitter::FPLdexp(const F32F64& value, const U32& exp) {
+    switch (value.Type()) {
+    case Type::F32:
+        return Inst<F32>(Opcode::FPLdexp, value, exp);
+    case Type::F64:
+        return Inst<F64>(Opcode::FPLdexp64, value, exp);
+    default:
+        ThrowInvalidType(value.Type());
+    }
 }
 
 F32 IREmitter::FPLog2(const F32& value) {
@@ -1162,8 +1169,15 @@ F32F64 IREmitter::FPRecipSqrt(const F32F64& value) {
     }
 }
 
-F32 IREmitter::FPSqrt(const F32& value) {
-    return Inst<F32>(Opcode::FPSqrt, value);
+F32F64 IREmitter::FPSqrt(const F32F64& value) {
+    switch (value.Type()) {
+    case Type::F32:
+        return Inst<F32>(Opcode::FPSqrt, value);
+    case Type::F64:
+        return Inst<F64>(Opcode::FPSqrt64, value);
+    default:
+        ThrowInvalidType(value.Type());
+    }
 }
 
 F32F64 IREmitter::FPSaturate(const F32F64& value) {
