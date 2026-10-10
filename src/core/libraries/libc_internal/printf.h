@@ -568,7 +568,7 @@ static inline int _vsnprintf(out_fct_type out, char* buffer, const char* format,
             // convert the integer
             if ((*format == 'i') || (*format == 'd')) {
                 // signed
-                if (flags & FLAGS_LONG_LONG) {
+                if (flags & (FLAGS_LONG_LONG | FLAGS_LONG)) {
 #if defined(PRINTF_SUPPORT_LONG_LONG)
                     auto value = vaArgLongLong(
                         va_list); // const long long value = va.next<long long>(cpu, mem);
@@ -576,11 +576,6 @@ static inline int _vsnprintf(out_fct_type out, char* buffer, const char* format,
                                           (unsigned long long)(value > 0 ? value : 0 - value),
                                           value < 0, base, precision, width, flags);
 #endif
-                } else if (flags & FLAGS_LONG) {
-                    auto value = vaArgLong(va_list); // const long value = va.next<long>(cpu, mem);
-                    idx = _ntoa_long(out, buffer, idx, maxlen,
-                                     (unsigned long)(value > 0 ? value : 0 - value), value < 0,
-                                     base, precision, width, flags);
                 } else {
                     // const int value = (flags & FLAGS_CHAR) ? (char)va.next<int>(cpu, mem) :
                     // (flags & FLAGS_SHORT) ? (short int)va.next<int>(cpu, mem): va.next<int>(cpu,
@@ -595,7 +590,7 @@ static inline int _vsnprintf(out_fct_type out, char* buffer, const char* format,
                 }
             } else {
                 // unsigned
-                if (flags & FLAGS_LONG_LONG) {
+                if (flags & (FLAGS_LONG_LONG | FLAGS_LONG)) {
 #if defined(PRINTF_SUPPORT_LONG_LONG)
                     // idx = _ntoa_long_long(out, buffer, idx, maxlen, va.next<unsigned long
                     // long>(cpu, mem), false, base, precision, width, flags);
@@ -603,11 +598,6 @@ static inline int _vsnprintf(out_fct_type out, char* buffer, const char* format,
                                           static_cast<u64>(vaArgLongLong(va_list)), false, base,
                                           precision, width, flags);
 #endif
-                } else if (flags & FLAGS_LONG) {
-                    // idx = _ntoa_long(out, buffer, idx, maxlen, va.next<unsigned long>(cpu, mem),
-                    // false, base, precision, width, flags);
-                    idx = _ntoa_long(out, buffer, idx, maxlen, static_cast<u32>(vaArgLong(va_list)),
-                                     false, base, precision, width, flags);
                 } else {
                     // const unsigned int value = (flags & FLAGS_CHAR) ? (unsigned
                     // char)va.next<unsigned int>(cpu, mem) : (flags & FLAGS_SHORT) ?
