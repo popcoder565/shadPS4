@@ -1207,6 +1207,7 @@ int PS4_SYSV_ABI posix_pthread_suspend_user_context_np(PthreadT thread) {
         return ret;
     }
     thread->flags |= ThreadFlags::Suspended;
+    thread->refcount++;
     thread->lock->unlock();
 
 #ifdef __APPLE__
@@ -1236,6 +1237,7 @@ int PS4_SYSV_ABI posix_pthread_suspend_user_context_np(PthreadT thread) {
     }
 #endif
 
+    thread_state->RefDelete(thread);
     return 0;
 }
 
@@ -1248,6 +1250,7 @@ int PS4_SYSV_ABI posix_pthread_resume_user_context_np(PthreadT thread) {
         return ret;
     }
     thread->flags &= ~ThreadFlags::Suspended;
+    thread->refcount++;
     thread->lock->unlock();
 
 #ifdef __APPLE__
@@ -1274,6 +1277,7 @@ int PS4_SYSV_ABI posix_pthread_resume_user_context_np(PthreadT thread) {
     }
 #endif
 
+    thread_state->RefDelete(thread);
     return 0;
 }
 
@@ -1289,6 +1293,7 @@ int PS4_SYSV_ABI posix_pthread_get_user_context_np(PthreadT thread, Ucontext* ct
     const size_t stack_size = thread->attr.stacksize_attr;
     const uintptr_t stack_top = stack_base + stack_size;
     const uintptr_t start_pc = reinterpret_cast<uintptr_t>(thread->start_routine);
+    thread->refcount++;
     thread->lock->unlock();
 
     std::memset(ctx, 0, sizeof(Ucontext));
@@ -1389,6 +1394,7 @@ int PS4_SYSV_ABI posix_pthread_get_user_context_np(PthreadT thread, Ucontext* ct
         ctx->uc_mcontext.mc_rip = start_pc;
     }
 
+    thread_state->RefDelete(thread);
     return 0;
 }
 
