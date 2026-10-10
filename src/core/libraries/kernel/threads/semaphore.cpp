@@ -276,7 +276,7 @@ public:
                     std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
                 lk.lock();
                 if (was_signaled) {
-                    *timeout -= time;
+                    *timeout -= static_cast<u32>(std::min<s64>(time, *timeout));
                 } else {
                     *timeout = 0;
                 }
