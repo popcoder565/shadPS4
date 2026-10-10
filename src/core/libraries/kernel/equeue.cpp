@@ -32,6 +32,11 @@ std::shared_ptr<EqueueInternal> GetEqueue(OrbisKernelEqueue eq) {
     return it != kqueues.end() ? it->second : nullptr;
 }
 
+void RemoveEqueue(OrbisKernelEqueue eq) {
+    std::scoped_lock lock{kqueues_mutex};
+    kqueues.erase(eq);
+}
+
 static void HrTimerCallback(OrbisKernelEqueue eq, const OrbisKernelEvent& kevent) {
     if (const auto equeue = GetEqueue(eq)) {
         equeue->TriggerEvent(kevent.ident, OrbisKernelEvent::Filter::HrTimer, kevent.udata);

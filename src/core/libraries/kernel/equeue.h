@@ -191,6 +191,7 @@ private:
 };
 
 std::shared_ptr<EqueueInternal> GetEqueue(OrbisKernelEqueue eq);
+void RemoveEqueue(OrbisKernelEqueue eq);
 u64 PS4_SYSV_ABI sceKernelGetEventData(const OrbisKernelEvent* ev);
 
 void RegisterEventQueue(Core::Loader::SymbolsResolver* sym);

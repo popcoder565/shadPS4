@@ -32,6 +32,7 @@
 #include "core/file_sys/directories/normal_directory.h"
 #include "core/file_sys/directories/pfs_directory.h"
 #include "core/file_sys/fs.h"
+#include "core/libraries/kernel/equeue.h"
 #include "core/libraries/kernel/file_system.h"
 #include "core/libraries/kernel/orbis_error.h"
 #include "core/libraries/kernel/posix_error.h"
@@ -300,6 +301,9 @@ s32 PS4_SYSV_ABI close(s32 fd) {
     }
     if (file->type == Core::FileSys::FileType::Regular) {
         file->handle.reset();
+    }
+    if (file->type == Core::FileSys::FileType::Equeue) {
+        RemoveEqueue(fd);
     }
     file->is_opened = false;
     LOG_INFO(Kernel_Fs, "Closing {}", file->m_guest_name);
