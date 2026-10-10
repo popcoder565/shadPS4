@@ -23,6 +23,8 @@ static std::unordered_map<u32, std::unique_ptr<AjmContext>> contexts{};
 
 u32 GetChannelMask(u32 num_channels) {
     switch (num_channels) {
+    case 0:
+        return 0;
     case 1:
         return ORBIS_AJM_CHANNELMASK_MONO;
     case 2:
