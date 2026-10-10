@@ -67,6 +67,7 @@ static void KernelServiceThread(std::stop_token stoken) {
         {
             std::unique_lock lock{m_asio_req};
             Common::CondvarWait(cv_asio_req, lock, stoken, [] { return asio_requests != 0; });
+            asio_requests = 0;
         }
         if (stoken.stop_requested()) {
             break;
@@ -74,8 +75,6 @@ static void KernelServiceThread(std::stop_token stoken) {
 
         io_context.run();
         io_context.restart();
-
-        asio_requests = 0;
     }
 }
 
