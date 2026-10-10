@@ -152,6 +152,10 @@ int PthreadCond::Wait(PthreadMutexT* mutex, const OrbisKernelTimespec* abstime, 
         SleepqUnlock(this);
 
         if (cancel_pending) {
+            curthread->will_sleep = false;
+            if (curthread->nwaiter_defer > 0) {
+                curthread->WakeAll();
+            }
             error = 0;
         } else if (!is_reltime) {
             error = curthread->Sleep(abstime, usec, clock_id) ? 0 : POSIX_ETIMEDOUT;
