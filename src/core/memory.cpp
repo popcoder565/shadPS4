@@ -33,16 +33,13 @@ MemoryManager::MemoryManager() {
     if (extra_dmem != 0) {
         total_size += extra_dmem * 1_MB;
     }
-    s32 extra_fmem = EmulatorSettings.GetExtraFmemInMBytes();
-    if (extra_fmem != 0) {
-        total_size += extra_fmem * 1_MB;
-    }
     total_direct_size = total_size;
     dmem_map.clear();
     dmem_map.emplace(0, PhysicalMemoryArea{0, total_direct_size});
 
     // Pre-initialize flexible backing
-    total_flexible_size = ORBIS_KERNEL_FLEXIBLE_MEMORY_SIZE + extra_fmem;
+    s32 extra_fmem = EmulatorSettings.GetExtraFmemInMBytes();
+    total_flexible_size = ORBIS_KERNEL_FLEXIBLE_MEMORY_SIZE + extra_fmem * 1_MB;
     fmem_map.clear();
     fmem_map.emplace(total_size, PhysicalMemoryArea{total_size, total_flexible_size});
 
