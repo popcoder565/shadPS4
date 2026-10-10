@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2024-2026 shadPS4 Emulator Project
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include <shared_mutex>
 #include <thread>
 #include <magic_enum/magic_enum.hpp>
 
@@ -21,28 +22,31 @@ namespace Libraries::Kernel {
 extern boost::asio::io_context io_context;
 extern void KernelSignalRequest();
 
+static std::shared_mutex kqueues_mutex;
 static std::unordered_map<s32, EqueueInternal*> kqueues;
 static constexpr auto HrTimerSpinlockThresholdNs = 1200000u;
 
 EqueueInternal* GetEqueue(OrbisKernelEqueue eq) {
-    if (!kqueues.contains(eq)) {
-        return nullptr;
-    }
-    return kqueues[eq];
+    std::shared_lock lock{kqueues_mutex};
+    const auto it = kqueues.find(eq);
+    return it != kqueues.end() ? it->second : nullptr;
 }
 
 static void HrTimerCallback(OrbisKernelEqueue eq, const OrbisKernelEvent& kevent) {
-    if (kqueues.contains(eq)) {
-        kqueues[eq]->TriggerEvent(kevent.ident, OrbisKernelEvent::Filter::HrTimer, kevent.udata);
+    std::shared_lock lock{kqueues_mutex};
+    if (const auto it = kqueues.find(eq); it != kqueues.end()) {
+        it->second->TriggerEvent(kevent.ident, OrbisKernelEvent::Filter::HrTimer, kevent.udata);
     }
 }
 
 static void TimerCallback(OrbisKernelEqueue eq, const OrbisKernelEvent& kevent) {
-    if (kqueues.contains(eq) && kqueues[eq]->EventExists(kevent.ident, kevent.filter)) {
-        kqueues[eq]->TriggerEvent(kevent.ident, OrbisKernelEvent::Filter::Timer, kevent.udata);
+    std::shared_lock lock{kqueues_mutex};
+    const auto it = kqueues.find(eq);
+    if (it != kqueues.end() && it->second->EventExists(kevent.ident, kevent.filter)) {
+        it->second->TriggerEvent(kevent.ident, OrbisKernelEvent::Filter::Timer, kevent.udata);
         if (!(kevent.flags & OrbisKernelEvent::Flags::OneShot)) {
             // Reschedule the event for its next period.
-            kqueues[eq]->ScheduleEvent(kevent.ident, kevent.filter, TimerCallback);
+            it->second->ScheduleEvent(kevent.ident, kevent.filter, TimerCallback);
         }
     }
 }
@@ -140,19 +144,19 @@ bool EqueueInternal::ScheduleEvent(u64 id, s16 filter,
         it->timer->expires_at(it->timer->expiry() + event.timer_interval);
     }
 
-    it->timer->async_wait(
-        [this, event_data = event.event, callback](const boost::system::error_code& ec) {
-            if (ec) {
-                if (ec != boost::system::errc::operation_canceled) {
-                    LOG_ERROR(Kernel_Event, "Timer callback error: {}", ec.message());
-                } else {
-                    // Timer was cancelled (removed) before it triggered
-                    LOG_DEBUG(Kernel_Event, "Timer cancelled");
-                }
-                return;
+    it->timer->async_wait([handle = m_handle, event_data = event.event,
+                           callback](const boost::system::error_code& ec) {
+        if (ec) {
+            if (ec != boost::system::errc::operation_canceled) {
+                LOG_ERROR(Kernel_Event, "Timer callback error: {}", ec.message());
+            } else {
+                // Timer was cancelled (removed) before it triggered
+                LOG_DEBUG(Kernel_Event, "Timer cancelled");
             }
-            callback(this->m_handle, event_data);
-        });
+            return;
+        }
+        callback(handle, event_data);
+    });
     KernelSignalRequest();
 
     return true;
@@ -328,7 +332,10 @@ s32 PS4_SYSV_ABI posix_kqueue() {
     snprintf(name, sizeof(name), "kqueue%i", kqueue_handle);
 
     // Create the queue
-    kqueues[kqueue_handle] = new EqueueInternal(kqueue_handle, name);
+    {
+        std::unique_lock lock{kqueues_mutex};
+        kqueues[kqueue_handle] = new EqueueInternal(kqueue_handle, name);
+    }
     LOG_INFO(Kernel_Event, "kqueue created with name {}", name);
 
     // Return handle.
@@ -351,11 +358,11 @@ s32 PS4_SYSV_ABI posix_kevent(s32 handle, OrbisKernelEvent* changelist, u64 ncha
              nevents);
 
     // Get the equeue
-    if (!kqueues.contains(handle)) {
+    auto* equeue = GetEqueue(handle);
+    if (equeue == nullptr) {
         *__Error() = POSIX_EBADF;
         return ORBIS_FAIL;
     }
-    auto equeue = kqueues[handle];
 
     // First step is to apply all changes in changelist.
     for (u64 i = 0; i < nchanges; i++) {
@@ -441,32 +448,40 @@ int PS4_SYSV_ABI sceKernelCreateEqueue(OrbisKernelEqueue* eq, const char* name) 
     kqueue_file->type = Core::FileSys::FileType::Equeue;
 
     // Create the equeue
-    kqueues[kqueue_handle] = new EqueueInternal(kqueue_handle, name);
+    {
+        std::unique_lock lock{kqueues_mutex};
+        kqueues[kqueue_handle] = new EqueueInternal(kqueue_handle, name);
+    }
     *eq = kqueue_handle;
 
     return ORBIS_OK;
 }
 
 int PS4_SYSV_ABI sceKernelDeleteEqueue(OrbisKernelEqueue eq) {
-    if (!kqueues.contains(eq)) {
-        return ORBIS_KERNEL_ERROR_EBADF;
+    EqueueInternal* equeue;
+    {
+        std::unique_lock lock{kqueues_mutex};
+        const auto it = kqueues.find(eq);
+        if (it == kqueues.end()) {
+            return ORBIS_KERNEL_ERROR_EBADF;
+        }
+        equeue = it->second;
+        kqueues.erase(it);
     }
 
     auto* handles = Common::Singleton<Core::FileSys::HandleTable>::Instance();
     handles->DeleteHandle(eq);
-    delete kqueues[eq];
-    kqueues.erase(eq);
+    delete equeue;
     return ORBIS_OK;
 }
 
 int PS4_SYSV_ABI sceKernelWaitEqueue(OrbisKernelEqueue eq, OrbisKernelEvent* ev, int num, int* out,
                                      OrbisKernelUseconds* timo) {
     HLE_TRACE;
-    if (!kqueues.contains(eq)) {
+    auto* equeue = GetEqueue(eq);
+    if (equeue == nullptr) {
         return ORBIS_KERNEL_ERROR_EBADF;
     }
-
-    auto& equeue = kqueues[eq];
 
     TRACE_HINT(equeue->GetName());
     LOG_TRACE(Kernel_Event, "equeue = {} num = {}", equeue->GetName(), num);
@@ -491,7 +506,8 @@ int PS4_SYSV_ABI sceKernelWaitEqueue(OrbisKernelEqueue eq, OrbisKernelEvent* ev,
 
 s32 PS4_SYSV_ABI sceKernelAddHRTimerEvent(OrbisKernelEqueue eq, int id, OrbisKernelTimespec* ts,
                                           void* udata) {
-    if (!kqueues.contains(eq)) {
+    auto* equeue = GetEqueue(eq);
+    if (equeue == nullptr) {
         return ORBIS_KERNEL_ERROR_EBADF;
     }
 
@@ -514,7 +530,6 @@ s32 PS4_SYSV_ABI sceKernelAddHRTimerEvent(OrbisKernelEqueue eq, int id, OrbisKer
     // `HrTimerSpinlockThresholdUs`) and fall back to boost asio timers if the time to tick is
     // large. Even for large delays, we truncate a small portion to complete the wait
     // using the spinlock, prioritizing precision.
-    auto& equeue = kqueues[eq];
     if (total_ns < HrTimerSpinlockThresholdNs) {
         return equeue->AddSmallTimer(event) ? ORBIS_OK : ORBIS_KERNEL_ERROR_ENOMEM;
     }
@@ -526,11 +541,11 @@ s32 PS4_SYSV_ABI sceKernelAddHRTimerEvent(OrbisKernelEqueue eq, int id, OrbisKer
 }
 
 int PS4_SYSV_ABI sceKernelDeleteHRTimerEvent(OrbisKernelEqueue eq, int id) {
-    if (!kqueues.contains(eq)) {
+    auto* equeue = GetEqueue(eq);
+    if (equeue == nullptr) {
         return ORBIS_KERNEL_ERROR_EBADF;
     }
 
-    auto& equeue = kqueues[eq];
     if (equeue->HasSmallTimer()) {
         return equeue->RemoveSmallTimer(id) ? ORBIS_OK : ORBIS_KERNEL_ERROR_ENOENT;
     } else {
@@ -542,7 +557,8 @@ int PS4_SYSV_ABI sceKernelDeleteHRTimerEvent(OrbisKernelEqueue eq, int id) {
 
 int PS4_SYSV_ABI sceKernelAddTimerEvent(OrbisKernelEqueue eq, int id, OrbisKernelUseconds usec,
                                         void* udata) {
-    if (!kqueues.contains(eq)) {
+    auto* equeue = GetEqueue(eq);
+    if (equeue == nullptr) {
         return ORBIS_KERNEL_ERROR_EBADF;
     }
 
@@ -554,7 +570,6 @@ int PS4_SYSV_ABI sceKernelAddTimerEvent(OrbisKernelEqueue eq, int id, OrbisKerne
     event.event.data = usec / 1000;
     event.event.udata = udata;
 
-    auto& equeue = kqueues[eq];
     if (!equeue->AddEvent(event)) {
         return ORBIS_KERNEL_ERROR_ENOMEM;
     }
@@ -562,17 +577,18 @@ int PS4_SYSV_ABI sceKernelAddTimerEvent(OrbisKernelEqueue eq, int id, OrbisKerne
 }
 
 int PS4_SYSV_ABI sceKernelDeleteTimerEvent(OrbisKernelEqueue eq, int id) {
-    if (!kqueues.contains(eq)) {
+    auto* equeue = GetEqueue(eq);
+    if (equeue == nullptr) {
         return ORBIS_KERNEL_ERROR_EBADF;
     }
 
-    return kqueues[eq]->RemoveEvent(id, OrbisKernelEvent::Filter::Timer)
-               ? ORBIS_OK
-               : ORBIS_KERNEL_ERROR_ENOENT;
+    return equeue->RemoveEvent(id, OrbisKernelEvent::Filter::Timer) ? ORBIS_OK
+                                                                    : ORBIS_KERNEL_ERROR_ENOENT;
 }
 
 int PS4_SYSV_ABI sceKernelAddUserEvent(OrbisKernelEqueue eq, int id) {
-    if (!kqueues.contains(eq)) {
+    auto* equeue = GetEqueue(eq);
+    if (equeue == nullptr) {
         return ORBIS_KERNEL_ERROR_EBADF;
     }
 
@@ -584,11 +600,12 @@ int PS4_SYSV_ABI sceKernelAddUserEvent(OrbisKernelEqueue eq, int id) {
     event.event.fflags = 0;
     event.event.data = 0;
 
-    return kqueues[eq]->AddEvent(event) ? ORBIS_OK : ORBIS_KERNEL_ERROR_ENOMEM;
+    return equeue->AddEvent(event) ? ORBIS_OK : ORBIS_KERNEL_ERROR_ENOMEM;
 }
 
 int PS4_SYSV_ABI sceKernelAddUserEventEdge(OrbisKernelEqueue eq, int id) {
-    if (!kqueues.contains(eq)) {
+    auto* equeue = GetEqueue(eq);
+    if (equeue == nullptr) {
         return ORBIS_KERNEL_ERROR_EBADF;
     }
 
@@ -600,7 +617,7 @@ int PS4_SYSV_ABI sceKernelAddUserEventEdge(OrbisKernelEqueue eq, int id) {
     event.event.fflags = 0;
     event.event.data = 0;
 
-    return kqueues[eq]->AddEvent(event) ? ORBIS_OK : ORBIS_KERNEL_ERROR_ENOMEM;
+    return equeue->AddEvent(event) ? ORBIS_OK : ORBIS_KERNEL_ERROR_ENOMEM;
 }
 
 void* PS4_SYSV_ABI sceKernelGetEventUserData(const OrbisKernelEvent* ev) {
@@ -613,22 +630,24 @@ u64 PS4_SYSV_ABI sceKernelGetEventId(const OrbisKernelEvent* ev) {
 }
 
 int PS4_SYSV_ABI sceKernelTriggerUserEvent(OrbisKernelEqueue eq, int id, void* udata) {
-    if (!kqueues.contains(eq)) {
+    auto* equeue = GetEqueue(eq);
+    if (equeue == nullptr) {
         return ORBIS_KERNEL_ERROR_EBADF;
     }
 
-    if (!kqueues[eq]->TriggerEvent(id, OrbisKernelEvent::Filter::User, udata)) {
+    if (!equeue->TriggerEvent(id, OrbisKernelEvent::Filter::User, udata)) {
         return ORBIS_KERNEL_ERROR_ENOENT;
     }
     return ORBIS_OK;
 }
 
 int PS4_SYSV_ABI sceKernelDeleteUserEvent(OrbisKernelEqueue eq, int id) {
-    if (!kqueues.contains(eq)) {
+    auto* equeue = GetEqueue(eq);
+    if (equeue == nullptr) {
         return ORBIS_KERNEL_ERROR_EBADF;
     }
 
-    if (!kqueues[eq]->RemoveEvent(id, OrbisKernelEvent::Filter::User)) {
+    if (!equeue->RemoveEvent(id, OrbisKernelEvent::Filter::User)) {
         return ORBIS_KERNEL_ERROR_ENOENT;
     }
     return ORBIS_OK;
