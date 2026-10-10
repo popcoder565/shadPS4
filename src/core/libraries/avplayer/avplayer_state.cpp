@@ -176,7 +176,7 @@ bool AvPlayerState::GetStreamInfo(u32 stream_index, AvPlayerStreamInfo& info) {
 // Called inside GAME thread
 bool AvPlayerState::Start() {
     std::unique_lock lock(m_source_mutex);
-    if (m_current_state == AvState::Ready || m_current_state == AvState::Stop || Stop()) {
+    if (m_current_state == AvState::Ready || m_current_state == AvState::Stop || StopLocked()) {
         m_eof_stop_event_sent = false;
         SetState(AvState::Starting);
         if (!m_up_source->Start()) {
@@ -280,6 +280,10 @@ bool AvPlayerState::EnableStream(u32 stream_index) {
 // Called inside GAME thread
 bool AvPlayerState::Stop() {
     std::shared_lock lock(m_source_mutex);
+    return StopLocked();
+}
+
+bool AvPlayerState::StopLocked() {
     if (m_up_source == nullptr || m_current_state == AvState::Stop) {
         return false;
     }
