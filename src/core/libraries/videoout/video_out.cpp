@@ -228,7 +228,8 @@ s32 PS4_SYSV_ABI sceVideoOutGetEventData(const Kernel::OrbisKernelEvent* ev, s64
     }
 
     auto event_data = ev->data >> 0x10;
-    if (ev->ident != static_cast<s32>(OrbisVideoOutInternalEventId::Flip) || ev->data >= 0) {
+    if (ev->ident != static_cast<s32>(OrbisVideoOutInternalEventId::Flip) ||
+        static_cast<s64>(ev->data) >= 0) {
         *data = event_data;
     } else {
         *data = event_data | 0xffff000000000000;
