@@ -326,10 +326,6 @@ int PS4_SYSV_ABI sceNpTrophyDestroyContext(OrbisNpTrophyContext context) {
     Common::SlotId contextId;
     contextId.index = context - 1;
 
-    if (contextId.index >= trophy_contexts.Size()) {
-        return ORBIS_NP_TROPHY_ERROR_INVALID_CONTEXT;
-    }
-
     if (!trophy_contexts.IsAllocated(contextId)) {
         return ORBIS_NP_TROPHY_ERROR_INVALID_CONTEXT;
     }
@@ -346,12 +342,8 @@ s32 PS4_SYSV_ABI sceNpTrophyDestroyHandle(OrbisNpTrophyHandle handle) {
         return ORBIS_NP_TROPHY_ERROR_INVALID_HANDLE;
 
     s32 handle_index = handle - 1;
-    if (handle_index >= trophy_handles.Size()) {
-        LOG_ERROR(Lib_NpTrophy, "Invalid handle {}", handle);
-        return ORBIS_NP_TROPHY_ERROR_INVALID_HANDLE;
-    }
-
     if (!trophy_handles.IsAllocated({static_cast<u32>(handle_index)})) {
+        LOG_ERROR(Lib_NpTrophy, "Invalid handle {}", handle);
         return ORBIS_NP_TROPHY_ERROR_INVALID_HANDLE;
     }
 
@@ -375,7 +367,7 @@ int PS4_SYSV_ABI sceNpTrophyGetGameIcon(OrbisNpTrophyContext context, OrbisNpTro
 
     Common::SlotId contextId;
     contextId.index = context - 1;
-    if (contextId.index >= trophy_contexts.Size()) {
+    if (!trophy_contexts.IsAllocated(contextId)) {
         return ORBIS_NP_TROPHY_ERROR_INVALID_CONTEXT;
     }
     ContextKey contextkey = trophy_contexts[contextId];
@@ -426,7 +418,7 @@ int PS4_SYSV_ABI sceNpTrophyGetGameInfo(OrbisNpTrophyContext context, OrbisNpTro
 
     Common::SlotId contextId;
     contextId.index = context - 1;
-    if (contextId.index >= trophy_contexts.Size()) {
+    if (!trophy_contexts.IsAllocated(contextId)) {
         return ORBIS_NP_TROPHY_ERROR_INVALID_CONTEXT;
     }
     ContextKey contextkey = trophy_contexts[contextId];
@@ -544,7 +536,7 @@ int PS4_SYSV_ABI sceNpTrophyGetGroupInfo(OrbisNpTrophyContext context, OrbisNpTr
 
     Common::SlotId contextId;
     contextId.index = context - 1;
-    if (contextId.index >= trophy_contexts.Size()) {
+    if (!trophy_contexts.IsAllocated(contextId)) {
         return ORBIS_NP_TROPHY_ERROR_INVALID_CONTEXT;
     }
     ContextKey contextkey = trophy_contexts[contextId];
@@ -654,13 +646,12 @@ int PS4_SYSV_ABI sceNpTrophyGetTrophyIcon(OrbisNpTrophyContext context, OrbisNpT
 
     Common::SlotId contextId;
     contextId.index = context - 1;
-    if (contextId.index >= trophy_contexts.Size() || !trophy_contexts.IsAllocated(contextId)) {
+    if (!trophy_contexts.IsAllocated(contextId)) {
         return ORBIS_NP_TROPHY_ERROR_INVALID_CONTEXT;
     }
 
     s32 handle_index = handle - 1;
-    if (handle_index >= trophy_handles.Size() ||
-        !trophy_handles.IsAllocated({static_cast<u32>(handle_index)})) {
+    if (!trophy_handles.IsAllocated({static_cast<u32>(handle_index)})) {
         return ORBIS_NP_TROPHY_ERROR_INVALID_HANDLE;
     }
 
@@ -733,7 +724,7 @@ int PS4_SYSV_ABI sceNpTrophyGetTrophyInfo(OrbisNpTrophyContext context, OrbisNpT
 
     Common::SlotId contextId;
     contextId.index = context - 1;
-    if (contextId.index >= trophy_contexts.Size()) {
+    if (!trophy_contexts.IsAllocated(contextId)) {
         return ORBIS_NP_TROPHY_ERROR_INVALID_CONTEXT;
     }
     ContextKey contextkey = trophy_contexts[contextId];
@@ -821,13 +812,12 @@ s32 PS4_SYSV_ABI sceNpTrophyGetTrophyUnlockState(OrbisNpTrophyContext context,
 
     Common::SlotId contextId;
     contextId.index = context - 1;
-    if (contextId.index >= trophy_contexts.Size() || !trophy_contexts.IsAllocated(contextId)) {
+    if (!trophy_contexts.IsAllocated(contextId)) {
         return ORBIS_NP_TROPHY_ERROR_INVALID_CONTEXT;
     }
 
     s32 handle_index = handle - 1;
-    if (handle_index >= trophy_handles.Size() ||
-        !trophy_handles.IsAllocated({static_cast<u32>(handle_index)})) {
+    if (!trophy_handles.IsAllocated({static_cast<u32>(handle_index)})) {
         return ORBIS_NP_TROPHY_ERROR_INVALID_HANDLE;
     }
 
@@ -881,13 +871,12 @@ int PS4_SYSV_ABI sceNpTrophyRegisterContext(OrbisNpTrophyContext context,
 
     Common::SlotId contextId;
     contextId.index = context - 1;
-    if (contextId.index >= trophy_contexts.Size() || !trophy_contexts.IsAllocated(contextId)) {
+    if (!trophy_contexts.IsAllocated(contextId)) {
         return ORBIS_NP_TROPHY_ERROR_INVALID_CONTEXT;
     }
 
     s32 handle_index = handle - 1;
-    if (handle_index >= trophy_handles.Size() ||
-        !trophy_handles.IsAllocated({static_cast<u32>(handle_index)})) {
+    if (!trophy_handles.IsAllocated({static_cast<u32>(handle_index)})) {
         return ORBIS_NP_TROPHY_ERROR_INVALID_HANDLE;
     }
 
@@ -961,13 +950,12 @@ int PS4_SYSV_ABI sceNpTrophyUnlockTrophy(OrbisNpTrophyContext context, OrbisNpTr
 
     Common::SlotId contextId;
     contextId.index = context - 1;
-    if (contextId.index >= trophy_contexts.Size() || !trophy_contexts.IsAllocated(contextId)) {
+    if (!trophy_contexts.IsAllocated(contextId)) {
         return ORBIS_NP_TROPHY_ERROR_INVALID_CONTEXT;
     }
 
     s32 handle_index = handle - 1;
-    if (handle_index >= trophy_handles.Size() ||
-        !trophy_handles.IsAllocated({static_cast<u32>(handle_index)})) {
+    if (!trophy_handles.IsAllocated({static_cast<u32>(handle_index)})) {
         return ORBIS_NP_TROPHY_ERROR_INVALID_HANDLE;
     }
 
