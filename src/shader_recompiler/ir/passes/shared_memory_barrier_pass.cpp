@@ -57,7 +57,11 @@ static void EmitBarrierInBlock(IR::Block* block, bool subgroup = false) {
         }
     }
     if (action != BarrierAction::None) {
-        IR::IREmitter ir{*block, --block->end()};
+        auto insert_point = block->end();
+        if (block->back().GetOpcode() == IR::Opcode::ConditionRef) {
+            --insert_point;
+        }
+        IR::IREmitter ir{*block, insert_point};
         emit_barrier(ir);
     }
 }
