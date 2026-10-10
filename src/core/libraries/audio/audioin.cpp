@@ -43,7 +43,7 @@ static s32 GetPortType(s32 handle) {
 
 static int AllocatePort(OrbisAudioInType type) {
     // TODO implement port type ranges if needed
-    for (int i = 0; i <= ORBIS_AUDIO_IN_NUM_PORTS; i++) {
+    for (int i = 0; i < ORBIS_AUDIO_IN_NUM_PORTS; i++) {
         std::shared_lock read_lock{port_table_mutex};
         if (!port_table[i]) {
             return i;
