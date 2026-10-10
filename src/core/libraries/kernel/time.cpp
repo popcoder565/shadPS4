@@ -114,7 +114,11 @@ u32 PS4_SYSV_ABI posix_sleep(u32 seconds) {
 }
 
 s32 PS4_SYSV_ABI sceKernelSleep(u32 seconds) {
-    return sceKernelUsleep(seconds * 1'000'000);
+    const OrbisKernelTimespec ts = {
+        .tv_sec = seconds,
+        .tv_nsec = 0,
+    };
+    return sceKernelNanosleep(&ts, nullptr);
 }
 
 s32 PS4_SYSV_ABI posix_clock_gettime(u32 clock_id, OrbisKernelTimespec* ts) {
