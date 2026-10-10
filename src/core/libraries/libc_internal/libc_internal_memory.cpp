@@ -4,6 +4,7 @@
 #include "common/assert.h"
 #include "common/logging/log.h"
 #include "core/libraries/error_codes.h"
+#include "core/libraries/kernel/posix_error.h"
 #include "core/libraries/libs.h"
 #include "libc_internal_memory.h"
 
@@ -21,8 +22,18 @@ s32 PS4_SYSV_ABI internal_memcpy_s(void* dest, size_t destsz, const void* src, s
 #ifdef _WIN64
     return memcpy_s(dest, destsz, src, count);
 #else
+    if (count == 0) {
+        return 0;
+    }
+    if (dest == nullptr) {
+        return POSIX_EINVAL;
+    }
+    if (src == nullptr || count > destsz) {
+        std::memset(dest, 0, destsz);
+        return src == nullptr ? POSIX_EINVAL : POSIX_ERANGE;
+    }
     std::memcpy(dest, src, count);
-    return 0; // ALL OK
+    return 0;
 #endif
 }
 

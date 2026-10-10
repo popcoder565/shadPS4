@@ -4,6 +4,7 @@
 #include "common/assert.h"
 #include "common/logging/log.h"
 #include "core/libraries/error_codes.h"
+#include "core/libraries/kernel/posix_error.h"
 #include "core/libraries/libs.h"
 #include "libc_internal_str.h"
 
@@ -13,8 +14,20 @@ s32 PS4_SYSV_ABI internal_strcpy_s(char* dest, size_t dest_size, const char* src
 #ifdef _WIN64
     return strcpy_s(dest, dest_size, src);
 #else
-    std::strcpy(dest, src);
-    return 0; // ALL OK
+    if (dest == nullptr || dest_size == 0) {
+        return POSIX_EINVAL;
+    }
+    if (src == nullptr) {
+        dest[0] = '\0';
+        return POSIX_EINVAL;
+    }
+    const size_t length = strnlen(src, dest_size);
+    if (length == dest_size) {
+        dest[0] = '\0';
+        return POSIX_ERANGE;
+    }
+    std::memcpy(dest, src, length + 1);
+    return 0;
 #endif
 }
 
@@ -22,8 +35,21 @@ s32 PS4_SYSV_ABI internal_strcat_s(char* dest, size_t dest_size, const char* src
 #ifdef _WIN64
     return strcat_s(dest, dest_size, src);
 #else
-    std::strcat(dest, src);
-    return 0; // ALL OK
+    if (dest == nullptr || dest_size == 0) {
+        return POSIX_EINVAL;
+    }
+    const size_t dest_length = strnlen(dest, dest_size);
+    if (src == nullptr || dest_length == dest_size) {
+        dest[0] = '\0';
+        return POSIX_EINVAL;
+    }
+    const size_t length = strnlen(src, dest_size - dest_length);
+    if (length == dest_size - dest_length) {
+        dest[0] = '\0';
+        return POSIX_ERANGE;
+    }
+    std::memcpy(dest + dest_length, src, length + 1);
+    return 0;
 #endif
 }
 
