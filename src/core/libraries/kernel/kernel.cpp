@@ -334,7 +334,7 @@ s32 PS4_SYSV_ABI __sys_regmgr_call(u32 op, u32 key, void* result, void* value, u
 s32 PS4_SYSV_ABI sceKernelGetOpenPsId(void* psid) {
     LOG_TRACE(Lib_Kernel, "called, psid = {}", fmt::ptr(psid));
     if (!psid) {
-        return POSIX_EINVAL;
+        return ORBIS_KERNEL_ERROR_EINVAL;
     }
     static constexpr u8 default_psid[16] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
                                             0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10};
