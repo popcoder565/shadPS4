@@ -352,7 +352,8 @@ s32 PS4_SYSV_ABI posix_clock_getres(u32 clock_id, OrbisKernelTimespec* res) {
         return 0;
     }
     default:
-        UNREACHABLE();
+        SetPosixErrno(EINVAL);
+        return -1;
     }
 #else
     clockid_t pclock_id;
@@ -384,7 +385,8 @@ s32 PS4_SYSV_ABI posix_clock_getres(u32 clock_id, OrbisKernelTimespec* res) {
 #endif
         break;
     default:
-        UNREACHABLE();
+        SetPosixErrno(EINVAL);
+        return -1;
     }
 
     timespec t{};
