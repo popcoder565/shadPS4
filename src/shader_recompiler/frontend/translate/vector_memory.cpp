@@ -172,6 +172,8 @@ void Translator::EmitVectorMemory(const GcnInst& inst) {
     case Opcode::IMAGE_SAMPLE_B:
     case Opcode::IMAGE_SAMPLE_LZ:
     case Opcode::IMAGE_SAMPLE_C:
+    case Opcode::IMAGE_SAMPLE_C_L:
+    case Opcode::IMAGE_SAMPLE_C_B:
     case Opcode::IMAGE_SAMPLE_C_LZ:
     case Opcode::IMAGE_SAMPLE_O:
     case Opcode::IMAGE_SAMPLE_D_O:
@@ -179,6 +181,8 @@ void Translator::EmitVectorMemory(const GcnInst& inst) {
     case Opcode::IMAGE_SAMPLE_B_O:
     case Opcode::IMAGE_SAMPLE_LZ_O:
     case Opcode::IMAGE_SAMPLE_C_O:
+    case Opcode::IMAGE_SAMPLE_C_L_O:
+    case Opcode::IMAGE_SAMPLE_C_B_O:
     case Opcode::IMAGE_SAMPLE_C_LZ_O:
     case Opcode::IMAGE_SAMPLE_CD:
         return IMAGE_SAMPLE(inst);
@@ -186,10 +190,17 @@ void Translator::EmitVectorMemory(const GcnInst& inst) {
         // Image gather operations
     case Opcode::IMAGE_GATHER4:
     case Opcode::IMAGE_GATHER4_L:
+    case Opcode::IMAGE_GATHER4_B:
     case Opcode::IMAGE_GATHER4_LZ:
     case Opcode::IMAGE_GATHER4_C:
+    case Opcode::IMAGE_GATHER4_C_L:
+    case Opcode::IMAGE_GATHER4_C_B:
     case Opcode::IMAGE_GATHER4_O:
+    case Opcode::IMAGE_GATHER4_L_O:
+    case Opcode::IMAGE_GATHER4_B_O:
     case Opcode::IMAGE_GATHER4_C_O:
+    case Opcode::IMAGE_GATHER4_C_L_O:
+    case Opcode::IMAGE_GATHER4_C_B_O:
     case Opcode::IMAGE_GATHER4_C_LZ:
     case Opcode::IMAGE_GATHER4_LZ_O:
     case Opcode::IMAGE_GATHER4_C_LZ_O:
