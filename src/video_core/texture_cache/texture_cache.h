@@ -282,6 +282,9 @@ public:
 
     template <typename Func>
     void ForEachImageWithAddress(VAddr cpu_addr, Func&& func) {
+        if ((cpu_addr & 0xFF) != 0) {
+            return;
+        }
         const auto it = page_table.find(cpu_addr >> Traits::PAGE_BITS);
         if (it == nullptr) {
             return;
