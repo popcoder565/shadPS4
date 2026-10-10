@@ -47,7 +47,9 @@ s32 PS4_SYSV_ABI internal_strncpy_s(char* dest, size_t destsz, const char* src, 
 #ifdef _WIN64
     return strncpy_s(dest, destsz, src, count);
 #else
-    std::strcpy(dest, src);
+    const size_t length = strnlen(src, count);
+    std::memcpy(dest, src, length);
+    dest[length] = '\0';
     return 0;
 #endif
 }
