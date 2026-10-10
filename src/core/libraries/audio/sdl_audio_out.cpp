@@ -446,7 +446,7 @@ private:
                 convert = &ConvertF32Stereo;
                 break;
             case 8:
-                convert = is_std ? &ConvertF32Std8CH : &ConvertF32_8CH;
+                convert = &ConvertF32_8CH;
                 break;
             default:
                 LOG_ERROR(Lib_AudioOut, "Unsupported float channel count: {}", num_channels);
@@ -601,25 +601,6 @@ private:
 
     static void ConvertF32_8CH(const void* src, void* dst, u32 frames, const float*) {
         std::memcpy(dst, src, frames * 8 * sizeof(float));
-    }
-
-    static void ConvertF32Std8CH(const void* src, void* dst, u32 frames, const float*) {
-        const float* s = static_cast<const float*>(src);
-        float* d = static_cast<float*>(dst);
-
-        // Channel remapping for standard 8CH layout
-        for (u32 i = 0; i < frames; i++) {
-            const u32 offset = i << 3; // * 8
-
-            d[offset + FL] = s[offset + FL];
-            d[offset + FR] = s[offset + FR];
-            d[offset + FC] = s[offset + FC];
-            d[offset + LF] = s[offset + LF];
-            d[offset + SL] = s[offset + STD_SL];
-            d[offset + SR] = s[offset + STD_SR];
-            d[offset + BL] = s[offset + STD_BL];
-            d[offset + BR] = s[offset + STD_BR];
-        }
     }
 
     // Audio format parameters
