@@ -180,8 +180,7 @@ TEST_F(GcnTest, interp_mov_selects_p10_p20_and_p0) {
 }
 
 TEST_F(GcnTest, interp_mov_uses_vertex_values_only_for_passthrough_inputs) {
-    for (const auto [flat_shade, offset5] :
-         {std::pair{false, false}, std::pair{true, false}, std::pair{false, true}}) {
+    for (const auto [flat_shade, offset5] : {std::pair{false, false}, std::pair{true, false}}) {
         const auto p10 = TranslateFragmentInterpMovSelector(0, flat_shade, offset5);
         EXPECT_EQ(p10.attribute_indices, (std::vector<u32>{1U, 0U}));
         EXPECT_EQ(p10.fsub_count, 1U);
@@ -190,6 +189,10 @@ TEST_F(GcnTest, interp_mov_uses_vertex_values_only_for_passthrough_inputs) {
     const auto p10 = TranslateFragmentInterpMovSelector(0, true, true);
     EXPECT_EQ(p10.attribute_indices, (std::vector<u32>{1U}));
     EXPECT_EQ(p10.fsub_count, 0U);
+
+    const auto default_p10 = TranslateFragmentInterpMovSelector(0, false, true);
+    EXPECT_TRUE(default_p10.attribute_indices.empty());
+    EXPECT_EQ(default_p10.fsub_count, 0U);
 }
 
 // Example

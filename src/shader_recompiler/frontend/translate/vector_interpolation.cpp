@@ -102,6 +102,11 @@ void Translator::V_INTERP_MOV_F32(const GcnInst& inst) {
     auto& interp = info.fs_interpolation[attr_index];
     const u32 src_select = inst.src[0].code;
     ASSERT_MSG(src_select < 3, "Invalid V_INTERP_MOV_F32 selector {}", src_select);
+    if (attr.IsDefault()) {
+        const f32 p0 = DefaultValTable[attr.default_value][inst.control.vintrp.chan];
+        SetDst(inst.dst[0], ir.Imm32(src_select == 2 ? p0 : 0.0f));
+        return;
+    }
     ASSERT(attr.is_flat || src_select == 2 ||
            profile.supports_amd_shader_explicit_vertex_parameter ||
            profile.supports_fragment_shader_barycentric);
