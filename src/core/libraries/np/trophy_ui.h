@@ -26,7 +26,7 @@ private:
     void PlayWav(std::vector<unsigned char> wavData);
 
     std::string trophy_name;
-    std::string_view trophy_type;
+    std::string trophy_type;
     ImGui::RefCountedTexture trophy_icon;
     ImGui::RefCountedTexture trophy_type_icon;
     SDL_AudioStream* stream;
@@ -36,7 +36,7 @@ private:
 struct TrophyInfo {
     std::filesystem::path trophy_icon_path;
     std::string trophy_name;
-    std::string_view trophy_type;
+    std::string trophy_type;
 };
 
 void AddTrophyToQueue(const std::filesystem::path& trophyIconPath, const std::string& trophyName,

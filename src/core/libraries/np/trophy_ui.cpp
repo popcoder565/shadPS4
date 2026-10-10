@@ -183,7 +183,18 @@ float animation_duration = 0.5f;           // Animation duration
 float elapsed_time = 0.0f;                 // Animation time
 float fade_out_duration = 0.5f;            // Final fade duration
 
+// Must be called with queueMtx held.
+static void ShowTrophy(const TrophyInfo& trophy) {
+    // Resetting the animation for the next trophy
+    elapsed_time = 0.0f;                // Resetting animation time
+    fade_opacity = 0.0f;                // Starts invisible
+    start_pos = ImVec2(1280.0f, 50.0f); // Starts off screen, right
+    current_trophy_ui.emplace(trophy.trophy_icon_path, trophy.trophy_name, trophy.trophy_type);
+}
+
 void TrophyUI::Draw() {
+    // Trophies are queued from guest threads, keep them from replacing this one while it's drawn.
+    std::lock_guard<std::mutex> lock(queueMtx);
     const auto& io = GetIO();
 
     float AdjustWidth = io.DisplaySize.x / 1920;
@@ -307,12 +318,10 @@ void TrophyUI::Draw() {
     PopStyleVar();
 
     if (trophy_timer <= 0) {
-        std::lock_guard<std::mutex> lock(queueMtx);
         if (!trophy_queue.empty()) {
-            TrophyInfo next_trophy = trophy_queue.front();
+            const TrophyInfo next_trophy = trophy_queue.front();
             trophy_queue.pop();
-            current_trophy_ui.emplace(next_trophy.trophy_icon_path, next_trophy.trophy_name,
-                                      next_trophy.trophy_type);
+            ShowTrophy(next_trophy);
         } else {
             current_trophy_ui.reset();
         }
@@ -383,29 +392,26 @@ void AddTrophyToQueue(const std::filesystem::path& trophyIconPath, const std::st
 
     if (EmulatorSettings.IsTrophyPopupDisabled()) {
         return;
-    } else if (current_trophy_ui.has_value()) {
-        current_trophy_ui.reset();
     }
 
     TrophyInfo new_trophy;
     new_trophy.trophy_icon_path = trophyIconPath;
     new_trophy.trophy_name = trophyName;
     new_trophy.trophy_type = rarity;
-    trophy_queue.push(new_trophy);
 
-    if (!current_trophy_ui.has_value()) {
-#ifdef ENABLE_QT_GUI
-        BackgroundMusicPlayer::getInstance().stopMusic();
-#endif
-        // Resetting the animation for the next trophy
-        elapsed_time = 0.0f;                // Resetting animation time
-        fade_opacity = 0.0f;                // Starts invisible
-        start_pos = ImVec2(1280.0f, 50.0f); // Starts off screen, right
-        TrophyInfo next_trophy = trophy_queue.front();
-        trophy_queue.pop();
-        current_trophy_ui.emplace(next_trophy.trophy_icon_path, next_trophy.trophy_name,
-                                  next_trophy.trophy_type);
+    if (current_trophy_ui.has_value()) {
+        // The render thread may be drawing the shown trophy, let it replace that one on its next
+        // frame instead of destroying it here.
+        trophy_queue = {};
+        trophy_queue.push(new_trophy);
+        trophy_timer = 0;
+        return;
     }
+
+#ifdef ENABLE_QT_GUI
+    BackgroundMusicPlayer::getInstance().stopMusic();
+#endif
+    ShowTrophy(new_trophy);
 }
 
 } // namespace Libraries::Np::NpTrophy
