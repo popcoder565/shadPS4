@@ -77,7 +77,7 @@ int PS4_SYSV_ABI posix_pthread_rwlock_init(PthreadRwlockT* rwlock, const Pthread
 }
 
 int PS4_SYSV_ABI posix_pthread_rwlock_setname_np(PthreadRwlockT* rwlock, const char* name) {
-    if (!name) {
+    if (!rwlock || !name || *rwlock == THR_RWLOCK_DESTROYED) {
         return POSIX_EINVAL;
     }
     if (*rwlock) {
