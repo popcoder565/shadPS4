@@ -208,6 +208,11 @@ s32 PthreadMutex::Lock(const OrbisKernelTimespec* abstime, u64 usec) {
         return SelfLock(abstime, usec);
     }
 
+    if (m_lock.try_lock()) [[likely]] {
+        m_owner.store(curthread, std::memory_order_release);
+        return 0;
+    }
+
     /*
      * For adaptive mutexes, spin for a bit in the expectation
      * that if the application requests this mutex type then
