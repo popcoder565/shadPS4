@@ -31,8 +31,12 @@ void Translator::EmitVectorAlu(const GcnInst& inst) {
         return V_MUL_F32(inst);
     case Opcode::V_MUL_I32_I24:
         return V_MUL_I32_I24(inst, true);
+    case Opcode::V_MUL_HI_I32_I24:
+        return V_MUL_HI_I32_I24(inst, true);
     case Opcode::V_MUL_U32_U24:
         return V_MUL_I32_I24(inst, false);
+    case Opcode::V_MUL_HI_U32_U24:
+        return V_MUL_HI_I32_I24(inst, false);
     case Opcode::V_MIN_LEGACY_F32:
         return V_MIN_F32(inst, true);
     case Opcode::V_MAX_LEGACY_F32:
@@ -631,6 +635,14 @@ void Translator::V_MUL_I32_I24(const GcnInst& inst, bool is_signed) {
     const IR::U32 src1{
         ir.BitFieldExtract(GetSrc(inst.src[1]), ir.Imm32(0), ir.Imm32(24), is_signed)};
     SetDst(inst.dst[0], ir.IMul(src0, src1));
+}
+
+void Translator::V_MUL_HI_I32_I24(const GcnInst& inst, bool is_signed) {
+    const IR::U32 src0{
+        ir.BitFieldExtract(GetSrc(inst.src[0]), ir.Imm32(0), ir.Imm32(24), is_signed)};
+    const IR::U32 src1{
+        ir.BitFieldExtract(GetSrc(inst.src[1]), ir.Imm32(0), ir.Imm32(24), is_signed)};
+    SetDst(inst.dst[0], ir.IMulHi(src0, src1, is_signed));
 }
 
 void Translator::V_MIN_F32(const GcnInst& inst, bool is_legacy) {
