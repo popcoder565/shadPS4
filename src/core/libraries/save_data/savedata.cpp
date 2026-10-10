@@ -739,12 +739,15 @@ Error PS4_SYSV_ABI sceSaveDataDelete(const OrbisSaveDataDelete* del) {
     if (dirName.empty()) {
         return Error::PARAMETER;
     }
+    const std::string_view title{del->titleId != nullptr ? std::string_view{del->titleId->data}
+                                                         : std::string_view{g_game_serial}};
     for (const auto& instance : g_mount_slots) {
-        if (instance.has_value() && instance->GetDirName() == dirName) {
+        if (instance.has_value() && instance->GetUserId() == del->userId &&
+            instance->GetTitleId() == title && instance->GetDirName() == dirName) {
             return Error::BUSY;
         }
     }
-    const auto save_path = SaveInstance::MakeDirSavePath(del->userId, g_game_serial, dirName);
+    const auto save_path = SaveInstance::MakeDirSavePath(del->userId, title, dirName);
     try {
         if (fs::exists(save_path)) {
             fs::remove_all(save_path);
