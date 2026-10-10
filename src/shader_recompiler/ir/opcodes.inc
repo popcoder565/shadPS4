@@ -401,6 +401,7 @@ OPCODE(LogicalNot,                                          U1,             U1, 
 OPCODE(ConvertS32F32,                                       U32,            F32,                                                                            )
 OPCODE(ConvertS32F64,                                       U32,            F64,                                                                            )
 OPCODE(ConvertU32F32,                                       U32,            F32,                                                                            )
+OPCODE(ConvertU32F64,                                       U32,            F64,                                                                            )
 OPCODE(ConvertF16F32,                                       F16,            F32,                                                                            )
 OPCODE(ConvertF32F16,                                       F32,            F16,                                                                            )
 OPCODE(ConvertF32F64,                                       F32,            F64,                                                                            )

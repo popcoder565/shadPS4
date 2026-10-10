@@ -1868,6 +1868,8 @@ U32U64 IREmitter::ConvertFToU(size_t bitsize, const F32F64& value) {
         switch (value.Type()) {
         case Type::F32:
             return Inst<U32>(Opcode::ConvertU32F32, value);
+        case Type::F64:
+            return Inst<U32>(Opcode::ConvertU32F64, value);
         default:
             ThrowInvalidType(value.Type());
         }
