@@ -155,6 +155,10 @@ void Translator::EmitVectorAlu(const GcnInst& inst) {
         return V_CVT_F32_UBYTE(3, inst);
     case Opcode::V_TRUNC_F64:
         return V_TRUNC_F64(inst);
+    case Opcode::V_CEIL_F64:
+        return V_CEIL_F64(inst);
+    case Opcode::V_RNDNE_F64:
+        return V_RNDNE_F64(inst);
     case Opcode::V_FLOOR_F64:
         return V_FLOOR_F64(inst);
     case Opcode::V_FRACT_F32:
@@ -179,6 +183,8 @@ void Translator::EmitVectorAlu(const GcnInst& inst) {
         return V_RCP_LEGACY_F32(inst);
     case Opcode::V_RCP_F64:
         return V_RCP_F64(inst);
+    case Opcode::V_RSQ_F64:
+        return V_RSQ_F64(inst);
     case Opcode::V_RCP_IFLAG_F32:
         return V_RCP_F32(inst);
     case Opcode::V_RCP_CLAMP_F32:
@@ -1011,6 +1017,16 @@ void Translator::V_TRUNC_F64(const GcnInst& inst) {
     SetDst64(inst.dst[0], ir.FPTrunc(src0));
 }
 
+void Translator::V_CEIL_F64(const GcnInst& inst) {
+    const IR::F64 src0{GetSrc64<IR::F64>(inst.src[0])};
+    SetDst64(inst.dst[0], ir.FPCeil(src0));
+}
+
+void Translator::V_RNDNE_F64(const GcnInst& inst) {
+    const IR::F64 src0{GetSrc64<IR::F64>(inst.src[0])};
+    SetDst64(inst.dst[0], ir.FPRoundEven(src0));
+}
+
 void Translator::V_FLOOR_F64(const GcnInst& inst) {
     const IR::F64 src0{GetSrc64<IR::F64>(inst.src[0])};
     SetDst64(inst.dst[0], ir.FPFloor(src0));
@@ -1073,6 +1089,11 @@ void Translator::V_RCP_LEGACY_F32(const GcnInst& inst) {
 void Translator::V_RCP_F64(const GcnInst& inst) {
     const IR::F64 src0{GetSrc64<IR::F64>(inst.src[0])};
     SetDst64(inst.dst[0], ir.FPRecip(src0));
+}
+
+void Translator::V_RSQ_F64(const GcnInst& inst) {
+    const IR::F64 src0{GetSrc64<IR::F64>(inst.src[0])};
+    SetDst64(inst.dst[0], ir.FPRecipSqrt(src0));
 }
 
 void Translator::V_RSQ_F32(const GcnInst& inst) {
