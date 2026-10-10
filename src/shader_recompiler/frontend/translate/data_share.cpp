@@ -206,9 +206,21 @@ void Translator::DS_WRITE(int bit_size, bool is_signed, bool is_pair, bool strid
     const IR::VectorReg data1{inst.src[2].code};
     const u32 offset = (inst.control.ds.offset1 << 8u) + inst.control.ds.offset0;
     if (info.hw_stage == HwStage::Fragment) {
-        ASSERT_MSG(!is_pair && bit_size == 32 && offset % 256 == 0,
-                   "Unexpected shared memory offset alignment: {}", offset);
-        ir.SetVectorReg(GetScratchVgpr(offset), ir.GetVectorReg(data0));
+        ASSERT_MSG(bit_size >= 32, "Unexpected {}-bit shared memory write", bit_size);
+        const auto write_scratch = [&](u32 byte_offset, IR::VectorReg data) {
+            ASSERT_MSG(byte_offset % 4 == 0, "Unexpected shared memory offset alignment: {}",
+                       byte_offset);
+            for (u32 i = 0; i < u32(bit_size) / 32; ++i) {
+                ir.SetVectorReg(GetScratchVgpr(byte_offset + i * 4), ir.GetVectorReg(data + i));
+            }
+        };
+        if (is_pair) {
+            const u32 adj = (bit_size == 32 ? 4 : 8) * (stride64 ? 64 : 1);
+            write_scratch(inst.control.ds.offset0 * adj, data0);
+            write_scratch(inst.control.ds.offset1 * adj, data1);
+        } else {
+            write_scratch(offset, data0);
+        }
         return;
     }
     if (is_pair) {
@@ -256,9 +268,21 @@ void Translator::DS_READ(int bit_size, bool is_signed, bool is_pair, bool stride
     IR::VectorReg dst_reg{inst.dst[0].code};
     const u32 offset = (inst.control.ds.offset1 << 8u) + inst.control.ds.offset0;
     if (info.hw_stage == HwStage::Fragment) {
-        ASSERT_MSG(!is_pair && bit_size == 32 && offset % 256 == 0,
-                   "Unexpected shared memory offset alignment: {}", offset);
-        ir.SetVectorReg(dst_reg, ir.GetVectorReg(GetScratchVgpr(offset)));
+        ASSERT_MSG(bit_size >= 32, "Unexpected {}-bit shared memory read", bit_size);
+        const auto read_scratch = [&](u32 byte_offset) {
+            ASSERT_MSG(byte_offset % 4 == 0, "Unexpected shared memory offset alignment: {}",
+                       byte_offset);
+            for (u32 i = 0; i < u32(bit_size) / 32; ++i) {
+                ir.SetVectorReg(dst_reg++, ir.GetVectorReg(GetScratchVgpr(byte_offset + i * 4)));
+            }
+        };
+        if (is_pair) {
+            const u32 adj = (bit_size == 32 ? 4 : 8) * (stride64 ? 64 : 1);
+            read_scratch(inst.control.ds.offset0 * adj);
+            read_scratch(inst.control.ds.offset1 * adj);
+        } else {
+            read_scratch(offset);
+        }
         return;
     }
     if (is_pair) {
