@@ -158,12 +158,12 @@ s32 PS4_SYSV_ABI sceKernelVirtualQuery(const void* addr, s32 flags, OrbisVirtual
 }
 
 s32 PS4_SYSV_ABI sceKernelReserveVirtualRange(void** addr, u64 len, s32 flags, u64 alignment) {
-    LOG_INFO(Kernel_Vmm, "addr = {}, len = {:#x}, flags = {:#x}, alignment = {:#x}",
-             fmt::ptr(*addr), len, flags, alignment);
     if (addr == nullptr) {
         LOG_ERROR(Kernel_Vmm, "Address is invalid!");
         return ORBIS_KERNEL_ERROR_EINVAL;
     }
+    LOG_INFO(Kernel_Vmm, "addr = {}, len = {:#x}, flags = {:#x}, alignment = {:#x}",
+             fmt::ptr(*addr), len, flags, alignment);
     if (len == 0 || !Common::Is16KBAligned(len)) {
         LOG_ERROR(Kernel_Vmm, "Map size is either zero or not 16KB aligned!");
         return ORBIS_KERNEL_ERROR_EINVAL;
