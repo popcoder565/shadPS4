@@ -762,6 +762,8 @@ static constexpr std::array formats{
                             vk::Format::eBc6HUfloatBlock),
     CreateSurfaceFormatInfo(AmdGpu::DataFormat::FormatBc6, AmdGpu::NumberFormat::Snorm,
                             vk::Format::eBc6HSfloatBlock),
+    CreateSurfaceFormatInfo(AmdGpu::DataFormat::FormatBc6, AmdGpu::NumberFormat::Float,
+                            vk::Format::eBc6HSfloatBlock),
     // BC7
     CreateSurfaceFormatInfo(AmdGpu::DataFormat::FormatBc7, AmdGpu::NumberFormat::Unorm,
                             vk::Format::eBc7UnormBlock),
