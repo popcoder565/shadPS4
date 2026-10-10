@@ -197,6 +197,8 @@ void StopThread() {
     while (GetWorkerStatus() != WorkerStatus::NotStarted) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
+    std::scoped_lock lk{g_backup_queue_mutex};
+    std::erase_if(g_backup_queue, [](const BackupRequest& req) { return req.save_path.empty(); });
 }
 
 bool NewRequest(Libraries::UserService::OrbisUserServiceUserId user_id, std::string_view title_id,
