@@ -410,7 +410,9 @@ void Translator::EmitVectorAlu(const GcnInst& inst) {
         return V_CMP_U64(ConditionOp::LG, false, true, inst);
 
     case Opcode::V_CMP_CLASS_F32:
-        return V_CMP_CLASS_F32(inst);
+        return V_CMP_CLASS_F32(false, inst);
+    case Opcode::V_CMPX_CLASS_F32:
+        return V_CMP_CLASS_F32(true, inst);
 
         // VOP3a
     case Opcode::V_MAD_LEGACY_F32:
@@ -1327,10 +1329,18 @@ void Translator::V_CMP_U64(ConditionOp op, bool is_signed, bool set_exec, const 
     SetDst64(inst.dst[1], ir.Ballot(result));
 }
 
-void Translator::V_CMP_CLASS_F32(const GcnInst& inst) {
+void Translator::V_CMP_CLASS_F32(bool set_exec, const GcnInst& inst) {
     const IR::F32 src0{GetSrc<IR::F32>(inst.src[0])};
     const IR::U32 src1{GetSrc(inst.src[1])};
-    SetDst64(inst.dst[1], ir.Ballot(ir.FPCmpClass32(src0, src1)));
+    const IR::U1 result{ir.FPCmpClass32(src0, src1)};
+    if (set_exec) {
+        // See the V_CMPX note in V_CMP_F32.
+        const IR::U1 masked{ir.LogicalAnd(ir.GetExec(), result)};
+        ir.SetExec(masked);
+        SetDst64(inst.dst[1], ir.Ballot(masked));
+        return;
+    }
+    SetDst64(inst.dst[1], ir.Ballot(result));
 }
 
 // VOP3a
