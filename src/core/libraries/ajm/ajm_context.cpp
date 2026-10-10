@@ -64,12 +64,15 @@ void AjmContext::WorkerThread(std::stop_token stop) {
     Common::SetCurrentThreadName("shadPS4:AjmWorker");
     while (!stop.stop_requested()) {
         auto batch = batch_queue.PopWait(stop);
-        if (batch != nullptr && !batch->canceled) {
+        if (batch == nullptr) {
+            continue;
+        }
+        if (!batch->canceled) {
             bool expected = false;
             batch->processed.compare_exchange_strong(expected, true);
             ProcessBatch(batch->id, batch->jobs);
-            batch->finished.release();
         }
+        batch->finished.release();
     }
 }
 
