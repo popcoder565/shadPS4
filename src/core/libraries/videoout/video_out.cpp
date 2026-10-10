@@ -298,7 +298,11 @@ s32 PS4_SYSV_ABI sceVideoOutGetResolutionStatus(s32 handle, SceVideoOutResolutio
 s32 PS4_SYSV_ABI sceVideoOutOpen(Libraries::UserService::OrbisUserServiceUserId userId, s32 busType,
                                  s32 index, const void* param) {
     LOG_INFO(Lib_VideoOut, "called");
-    ASSERT(busType == SCE_VIDEO_OUT_BUS_TYPE_MAIN);
+    if (busType != SCE_VIDEO_OUT_BUS_TYPE_MAIN) {
+        // Only the main output is emulated, not the social screen or live streaming outputs.
+        LOG_ERROR(Lib_VideoOut, "Unsupported bus type {}", busType);
+        return ORBIS_VIDEO_OUT_ERROR_INVALID_VALUE;
+    }
 
     if (index != 0) {
         LOG_ERROR(Lib_VideoOut, "Index != 0");
