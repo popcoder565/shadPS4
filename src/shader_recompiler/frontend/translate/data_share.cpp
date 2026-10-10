@@ -76,6 +76,8 @@ void Translator::EmitDataShare(const GcnInst& inst) {
         return DS_CONSUME(inst);
     case Opcode::DS_APPEND:
         return DS_APPEND(inst);
+    case Opcode::DS_ORDERED_COUNT:
+        return DS_ORDERED_COUNT(inst);
     case Opcode::DS_WRITE_B16:
         return DS_WRITE(16, false, false, false, inst);
     case Opcode::DS_WRITE_B64:
@@ -340,6 +342,24 @@ void Translator::DS_APPEND(const GcnInst& inst) {
     const IR::U32 gds_offset = ir.IAdd(base, ir.Imm32(inst_offset));
     const IR::U32 prev = ir.DataAppend(ir.ShiftRightLogical(gds_offset, ir.Imm32(2u)));
     SetDst(inst.dst[0], prev);
+}
+
+void Translator::DS_ORDERED_COUNT(const GcnInst& inst) {
+    // offset1 bit 4 selects swap instead of add.
+    if ((inst.control.ds.offset1 >> 4) & 1) {
+        LogMissingOpcode(inst);
+        return;
+    }
+    // Each wave adds the value of its first active lane to the GDS counter and every lane receives
+    // the previous value. Waves are not processed in launch order.
+    const IR::U32 base = ir.BitFieldExtract(ir.GetM0(), ir.Imm32(16), ir.Imm32(16));
+    const IR::U32 address = ir.BitwiseAnd(base, ir.Imm32(~3u));
+    const IR::U32 lane_id = ir.LaneId();
+    const IR::U1 is_first_lane = ir.IEqual(lane_id, ir.ReadFirstLane(lane_id));
+    const IR::U32 value = ir.ReadFirstLane(GetSrc(inst.src[1]));
+    const IR::U32 addend{ir.Select(is_first_lane, value, ir.Imm32(0u))};
+    const IR::U32 prev{ir.SharedAtomicIAdd(address, addend, true)};
+    SetDst(inst.dst[0], ir.ReadFirstLane(prev));
 }
 
 void Translator::DS_CONSUME(const GcnInst& inst) {
