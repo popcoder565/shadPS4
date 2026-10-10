@@ -861,18 +861,19 @@ void PatchImageArgs(IR::Inst& inst, Info& info) {
         {
             auto skip_lod = false;
             if (inst_info.has_lod) {
+                // MSAA images have a single level, so the mipid of an image_x_mip instruction is
+                // skipped and fragid is taken from the next arg
                 const auto mipid = body->Arg(2);
                 if (mipid.IsImmediate() && mipid.U32() == 0) {
-                    // if image_x_mip refers to a MSAA image, and mipid is 0, it is safe to be
-                    // skipped and fragid is taken from the next arg
                     LOG_WARNING(Render_Recompiler, "Encountered a _mip instruction with MSAA "
                                                    "image, and mipid is 0, skipping LoD");
-                    inst_info.has_lod.Assign(false);
-                    skip_lod = true;
                 } else {
-                    UNREACHABLE_MSG(
-                        "Encountered a _mip instruction with MSAA image, and mipid is non-zero");
+                    LOG_WARNING(Render_Recompiler,
+                                "Encountered a _mip instruction with MSAA image, and mipid is not "
+                                "a constant 0, skipping LoD");
                 }
+                inst_info.has_lod.Assign(false);
+                skip_lod = true;
             }
             return {ir.CompositeConstruct(body->Arg(0), body->Arg(1)), body->Arg(skip_lod ? 3 : 2)};
         }
