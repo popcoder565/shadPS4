@@ -493,6 +493,8 @@ void Translator::EmitVectorAlu(const GcnInst& inst) {
         return V_MUL_HI_U32(true, inst);
     case Opcode::V_MAD_U64_U32:
         return V_MAD_U64_U32(inst);
+    case Opcode::V_MAD_I64_I32:
+        return V_MAD_I64_I32(inst);
     case Opcode::V_LSHRREV_B16:
         return V_LSHRREV_B16(inst);
     case Opcode::V_ASHRREV_I16:
@@ -1617,6 +1619,26 @@ void Translator::V_MAD_U64_U32(const GcnInst& inst) {
     const IR::U32 hi{ir.CompositeExtract(unpacked, 1U)};
     ir.SetVccLo(lo);
     ir.SetVccHi(hi);
+}
+
+void Translator::V_MAD_I64_I32(const GcnInst& inst) {
+    const auto src0 = GetSrc<IR::U32>(inst.src[0]);
+    const auto src1 = GetSrc<IR::U32>(inst.src[1]);
+    const auto src2 = GetSrc64<IR::U64>(inst.src[2]);
+
+    const IR::U64 mul_result =
+        ir.PackUint2x32(ir.CompositeConstruct(ir.IMul(src0, src1), ir.IMulHi(src0, src1, true)));
+    const IR::U64 sum_result = ir.IAdd(mul_result, src2);
+
+    SetDst64(inst.dst[0], sum_result);
+
+    // The carry out is bit 64 of the exact sum, which is the result sign unless the add overflowed.
+    const IR::U64 zero = ir.Imm64(u64{0});
+    const IR::U1 is_negative = ir.ILessThan(sum_result, zero, true);
+    const IR::U64 overflow_bits =
+        ir.BitwiseAnd(ir.BitwiseXor(mul_result, sum_result), ir.BitwiseXor(src2, sum_result));
+    const IR::U1 did_overflow = ir.ILessThan(overflow_bits, zero, true);
+    SetDst64(inst.dst[1], ir.Ballot(ir.LogicalXor(is_negative, did_overflow)));
 }
 
 void Translator::V_LSHLREV_B16(const GcnInst& inst) {
