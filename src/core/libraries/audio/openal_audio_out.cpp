@@ -171,11 +171,11 @@ public:
         output_count++;
     }
     void SetVolume(const std::array<int, 8>& ch_volumes) override {
-        if (!device_context->MakeCurrent(device_name)) {
+        if (!source) [[unlikely]] {
             return;
         }
 
-        if (!source) [[unlikely]] {
+        if (!device_context->MakeCurrent(device_name)) {
             return;
         }
 
