@@ -4,6 +4,7 @@
 #include <condition_variable>
 #include <limits>
 #include <list>
+#include <memory>
 #include <mutex>
 #include <semaphore>
 
@@ -169,6 +170,9 @@ public:
         if (timeout && *timeout == 0) {
             return ORBIS_KERNEL_ERROR_ETIMEDOUT;
         }
+        if (is_deleted) {
+            return ORBIS_KERNEL_ERROR_EACCES;
+        }
 
         // Create waiting thread object and add it into the list of waiters.
         WaitingThread waiter{need_count, is_fifo};
@@ -221,6 +225,7 @@ public:
 
     void Delete() {
         std::scoped_lock lk{mutex};
+        is_deleted = true;
         for (auto* waiter : wait_list) {
             waiter->was_deleted = true;
             waiter->sem.release();
@@ -308,13 +313,20 @@ public:
     s32 max_count;
     s32 init_count;
     bool is_fifo;
+    bool is_deleted{};
 };
 
 static constexpr u32 MAX_ORBIS_SEMAPHORES = std::numeric_limits<u16>::max();
 
 using OrbisKernelSema = Common::SlotId;
 
-static Common::SlotVector<OrbisSem> orbis_sems;
+static std::mutex orbis_sems_mutex;
+static Common::SlotVector<std::shared_ptr<OrbisSem>> orbis_sems;
+
+static std::shared_ptr<OrbisSem> FindSema(OrbisKernelSema sem) {
+    std::scoped_lock lock{orbis_sems_mutex};
+    return orbis_sems.IsAllocated(sem) ? orbis_sems[sem] : nullptr;
+}
 
 s32 PS4_SYSV_ABI sceKernelCreateSema(OrbisKernelSema* sem, const char* pName, u32 attr,
                                      s32 initCount, s32 maxCount, const void* pOptParam) {
@@ -322,47 +334,62 @@ s32 PS4_SYSV_ABI sceKernelCreateSema(OrbisKernelSema* sem, const char* pName, u3
         LOG_ERROR(Lib_Kernel, "Semaphore creation parameters are invalid!");
         return ORBIS_KERNEL_ERROR_EINVAL;
     }
-    *sem = orbis_sems.Insert(initCount, maxCount, pName, attr == 1);
+    auto sema = std::make_shared<OrbisSem>(initCount, maxCount, pName, attr == 1);
+    std::scoped_lock lock{orbis_sems_mutex};
+    if (orbis_sems.Size() >= MAX_ORBIS_SEMAPHORES) {
+        LOG_ERROR(Lib_Kernel, "Out of semaphores");
+        return ORBIS_KERNEL_ERROR_ENOMEM;
+    }
+    *sem = orbis_sems.Insert(std::move(sema));
     return ORBIS_OK;
 }
 
 s32 PS4_SYSV_ABI sceKernelWaitSema(OrbisKernelSema sem, s32 needCount, u32* pTimeout) {
-    if (!orbis_sems.IsAllocated(sem)) {
+    const auto sema = FindSema(sem);
+    if (!sema) {
         return ORBIS_KERNEL_ERROR_ESRCH;
     }
-    return orbis_sems[sem].Wait(true, needCount, pTimeout);
+    return sema->Wait(true, needCount, pTimeout);
 }
 
 s32 PS4_SYSV_ABI sceKernelSignalSema(OrbisKernelSema sem, s32 signalCount) {
-    if (!orbis_sems.IsAllocated(sem)) {
+    const auto sema = FindSema(sem);
+    if (!sema) {
         return ORBIS_KERNEL_ERROR_ESRCH;
     }
-    if (!orbis_sems[sem].Signal(signalCount)) {
+    if (!sema->Signal(signalCount)) {
         return ORBIS_KERNEL_ERROR_EINVAL;
     }
     return ORBIS_OK;
 }
 
 s32 PS4_SYSV_ABI sceKernelPollSema(OrbisKernelSema sem, s32 needCount) {
-    if (!orbis_sems.IsAllocated(sem)) {
+    const auto sema = FindSema(sem);
+    if (!sema) {
         return ORBIS_KERNEL_ERROR_ESRCH;
     }
-    return orbis_sems[sem].Wait(false, needCount, nullptr);
+    return sema->Wait(false, needCount, nullptr);
 }
 
 s32 PS4_SYSV_ABI sceKernelCancelSema(OrbisKernelSema sem, s32 setCount, s32* pNumWaitThreads) {
-    if (!orbis_sems.IsAllocated(sem)) {
+    const auto sema = FindSema(sem);
+    if (!sema) {
         return ORBIS_KERNEL_ERROR_ESRCH;
     }
-    return orbis_sems[sem].Cancel(setCount, pNumWaitThreads);
+    return sema->Cancel(setCount, pNumWaitThreads);
 }
 
 s32 PS4_SYSV_ABI sceKernelDeleteSema(OrbisKernelSema sem) {
-    if (!orbis_sems.IsAllocated(sem)) {
-        return ORBIS_KERNEL_ERROR_ESRCH;
+    std::shared_ptr<OrbisSem> sema;
+    {
+        std::scoped_lock lock{orbis_sems_mutex};
+        if (!orbis_sems.IsAllocated(sem)) {
+            return ORBIS_KERNEL_ERROR_ESRCH;
+        }
+        sema = std::move(orbis_sems[sem]);
+        orbis_sems.Erase(sem);
     }
-    orbis_sems[sem].Delete();
-    orbis_sems.Erase(sem);
+    sema->Delete();
     return ORBIS_OK;
 }
 
