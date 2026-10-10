@@ -56,6 +56,9 @@ static void ExitThread() {
         _thread_cleanupspecific();
     }
 
+    /* Remove thread from tracking */
+    DebugState.RemoveCurrentThreadFromGuestList();
+
     auto* thread_state = ThrState::Instance();
     ASSERT(thread_state->active_threads.fetch_sub(1) != 1);
 
@@ -275,9 +278,6 @@ static void* RunThread(void* arg) {
     auto* const stack =
         (void*)(((size_t)curthread->attr.stackaddr_attr + curthread->attr.stacksize_attr) & (~15));
     void* ret = _runOnAnotherStack(curthread->arg, (void*)curthread->start_routine, stack);
-
-    /* Remove thread from tracking */
-    DebugState.RemoveCurrentThreadFromGuestList();
     posix_pthread_exit(ret);
 #ifdef WIN32
     return 0;

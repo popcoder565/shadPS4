@@ -47,7 +47,6 @@ void NativeThread::Exit() {
     tid = 0;
 
 #ifdef _WIN64
-    native_handle = nullptr;
     ExitThread(0);
 #else
     // Disable and free the signal stack.
@@ -61,6 +60,21 @@ void NativeThread::Exit() {
         sig_stack_ptr = nullptr;
     }
     pthread_exit(nullptr);
+#endif
+}
+
+void NativeThread::Join() {
+    if (!native_handle) {
+        return;
+    }
+
+#ifdef _WIN64
+    WaitForSingleObject(native_handle, INFINITE);
+    CloseHandle(native_handle);
+    native_handle = nullptr;
+#else
+    pthread_join(reinterpret_cast<pthread_t>(native_handle), nullptr);
+    native_handle = 0;
 #endif
 }
 

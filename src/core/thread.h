@@ -23,6 +23,7 @@ public:
 
     int Create(ThreadFunc func, void* arg);
     void Exit();
+    void Join();
 
     void Initialize();
 

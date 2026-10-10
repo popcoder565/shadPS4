@@ -3,7 +3,6 @@
 
 #include <boost/container/small_vector.hpp>
 #include "common/alignment.h"
-#include "common/scope_exit.h"
 #include "core/libraries/kernel/posix_error.h"
 #include "core/libraries/kernel/threads/pthread.h"
 #include "core/libraries/kernel/threads/sleepq.h"
@@ -41,9 +40,18 @@ void ThreadState::Collect(Pthread* curthread) {
                 ++it;
                 continue;
             }
-            FreeStack(&td->attr);
             work_list.push_back(td);
             it = gc_list.erase(it);
+        }
+    }
+    // The host thread may still be finishing its exit on the guest stack.
+    for (Pthread* td : work_list) {
+        td->native_thr->Join();
+    }
+    {
+        std::scoped_lock lk{thread_list_lock};
+        for (Pthread* td : work_list) {
+            FreeStack(&td->attr);
         }
     }
     for (Pthread* td : work_list) {
@@ -52,10 +60,8 @@ void ThreadState::Collect(Pthread* curthread) {
 }
 
 void ThreadState::TryCollect(Pthread* thread) {
-    SCOPE_EXIT {
-        thread->lock->unlock();
-    };
     if (!thread->ShouldCollect()) {
+        thread->lock->unlock();
         return;
     }
 
@@ -68,6 +74,8 @@ void ThreadState::TryCollect(Pthread* thread) {
         threads.erase(thread);
         gc_list.push_back(thread);
     }
+    // Release the thread before the list so a collector never frees a locked thread.
+    thread->lock->unlock();
 }
 
 Pthread* ThreadState::Alloc(Pthread* curthread) {
@@ -124,8 +132,8 @@ void ThreadState::Free(Pthread* curthread, Pthread* thread) {
     } else {
         TcbDtor(thread->tcb);
     }
-    thread->tcb = nullptr;
-    auto* sleepqueue = thread->sleepqueue;
+    delete thread->sleepqueue;
+    std::destroy_at(thread);
     bool should_free;
     {
         std::scoped_lock lk{free_thread_lock};
@@ -137,7 +145,6 @@ void ThreadState::Free(Pthread* curthread, Pthread* thread) {
         }
     }
     if (should_free) {
-        delete sleepqueue;
         thread_heap.Free(thread);
         total_threads.fetch_sub(1);
     }
