@@ -413,7 +413,7 @@ s32 MemoryManager::PoolCommit(VAddr virtual_addr, u64 size, MemoryProt prot, s32
     }
 
     // Create the virtual mapping for the commit
-    const auto new_vma_handle = CarveVMA(virtual_addr, size);
+    const auto new_vma_handle = CarveVMA(mapped_addr, size);
     auto& new_vma = new_vma_handle->second;
     new_vma.disallow_merge = false;
     new_vma.prot = prot;
