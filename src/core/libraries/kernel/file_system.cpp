@@ -622,7 +622,10 @@ s32 PS4_SYSV_ABI posix_mkdir(const char* path, u16 mode) {
 
     std::error_code ec;
     if (dir_name.empty() || !fs::create_directories(dir_name, ec)) {
-        *__Error() = (ec.value() == EACCES || ec.value() == EPERM) ? POSIX_EACCES : POSIX_EIO;
+        *__Error() =
+            (ec == std::errc::permission_denied || ec == std::errc::operation_not_permitted)
+                ? POSIX_EACCES
+                : POSIX_EIO;
         return -1;
     }
 
