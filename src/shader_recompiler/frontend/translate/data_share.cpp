@@ -44,6 +44,14 @@ void Translator::EmitDataShare(const GcnInst& inst) {
         return DS_OP(inst, AtomicOp::Add, true);
     case Opcode::DS_SUB_RTN_U32:
         return DS_OP(inst, AtomicOp::Sub, true);
+    case Opcode::DS_INC_RTN_U32:
+        return DS_OP(inst, AtomicOp::Inc, true);
+    case Opcode::DS_DEC_RTN_U32:
+        return DS_OP(inst, AtomicOp::Dec, true);
+    case Opcode::DS_MIN_RTN_I32:
+        return DS_OP(inst, AtomicOp::Smin, true);
+    case Opcode::DS_MAX_RTN_I32:
+        return DS_OP(inst, AtomicOp::Smax, true);
     case Opcode::DS_MIN_RTN_U32:
         return DS_OP(inst, AtomicOp::Umin, true);
     case Opcode::DS_MAX_RTN_U32:
