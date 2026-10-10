@@ -91,6 +91,8 @@ std::string_view NameOf(Class log_class) {
         return "Lib.NpCommerce";
     case Class::Lib_NpAuth:
         return "Lib.NpAuth";
+    case Class::Lib_NpEntitlementAccess:
+        return "Lib.NpEntitlementAccess";
     case Class::Lib_NpManager:
         return "Lib.NpManager";
     case Class::Lib_NpMatching2:

@@ -54,6 +54,7 @@ enum class Class {
     Lib_NpCommon,            ///< The LibSceNpCommon implementation
     Lib_NpCommerce,          ///< The LibSceNpCommerce implementation
     Lib_NpAuth,              ///< The LibSceNpAuth implementation
+    Lib_NpEntitlementAccess, ///< The LibSceNpEntitlementAccess implementation
     Lib_NpManager,           ///< The LibSceNpManager implementation
     Lib_NpMatching2,         ///< The LibSceNpMatching2 implementation
     Lib_NpSignaling,         ///< The LibSceNpSignaling implementation

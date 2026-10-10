@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include <cmath>
+#include <mutex>
 
 #include "app_content.h"
 #include "common/assert.h"
@@ -297,15 +298,7 @@ int PS4_SYSV_ABI sceAppContentGetRegion() {
     return ORBIS_OK;
 }
 
-int PS4_SYSV_ABI sceAppContentInitialize(const OrbisAppContentInitParam* initParam,
-                                         OrbisAppContentBootParam* bootParam) {
-    if (sdk_ver >= Common::ElfInfo::FW_150 && is_initialized) {
-        LOG_ERROR(Lib_AppContent, "Already initialized");
-        return ORBIS_APP_CONTENT_ERROR_BUSY;
-    }
-
-    LOG_WARNING(Lib_AppContent, "(DUMMY) called");
-    is_initialized = true;
+static void ScanAddcont() {
     auto* param_sfo = Common::Singleton<PSF>::Instance();
 
     const auto addons_dir = EmulatorSettings.GetAddonInstallDir();
@@ -414,7 +407,23 @@ int PS4_SYSV_ABI sceAppContentInitialize(const OrbisAppContentInitParam* initPar
         event.service_entitlement_update.np_service_label = 0;
         SystemService::PushSystemServiceEvent(event);
     }
+}
 
+void LoadAddcontInfo() {
+    static std::once_flag load_flag;
+    std::call_once(load_flag, ScanAddcont);
+}
+
+int PS4_SYSV_ABI sceAppContentInitialize(const OrbisAppContentInitParam* initParam,
+                                         OrbisAppContentBootParam* bootParam) {
+    if (sdk_ver >= Common::ElfInfo::FW_150 && is_initialized) {
+        LOG_ERROR(Lib_AppContent, "Already initialized");
+        return ORBIS_APP_CONTENT_ERROR_BUSY;
+    }
+
+    LOG_WARNING(Lib_AppContent, "(DUMMY) called");
+    is_initialized = true;
+    LoadAddcontInfo();
     return ORBIS_OK;
 }
 
