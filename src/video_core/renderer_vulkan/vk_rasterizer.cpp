@@ -888,6 +888,11 @@ void Rasterizer::BindTextures(const Shader::Info& stage, Shader::Backend::Bindin
                 ASSERT(num_bindings == 1);
                 desc.view_info.range.base.level += image_desc.constant_mip_index;
                 desc.view_info.range.extent.levels = 1;
+                if (desc.view_info.range.base.level >= tsharp.NumLevels()) {
+                    // The shader accesses a level the image doesn't have, bind nothing.
+                    image_id = {};
+                    continue;
+                }
             } else if (mip_fallback_mode == Shader::MipStorageFallbackMode::DynamicIndex) {
                 desc.view_info.range.base.level += i;
                 desc.view_info.range.extent.levels = 1;
