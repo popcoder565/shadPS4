@@ -336,10 +336,11 @@ int PS4_SYSV_ABI sceRtcFormatRFC3339Precise(char* pszDateTime, const OrbisRtcTic
         formattedString += std::to_string(formatTime.second);
     }
 
-    if (formatTime.microsecond != 0) {
-        formattedString += "." + std::to_string(formatTime.microsecond / 1000).substr(0, 2);
+    const u32 centiseconds = formatTime.microsecond / 10000;
+    if (centiseconds < 10) {
+        formattedString += ".0" + std::to_string(centiseconds);
     } else {
-        formattedString += ".00";
+        formattedString += "." + std::to_string(centiseconds);
     }
 
     if (iTimeZoneMinutes == 0) {
@@ -769,11 +770,11 @@ int PS4_SYSV_ABI sceRtcParseDateTime(OrbisRtcTick* pTickUtc, const char* pszDate
         if (dateTimeString[26] == '+') {
             int timeZoneOffset = std::stoi(dateTimeString.substr(27, 2)) * 60;
             timeZoneOffset += std::stoi(dateTimeString.substr(29, 2));
+            timeZoneOffset *= -1;
             sceRtcTickAddMinutes(pTickUtc, pTickUtc, timeZoneOffset);
         } else if (dateTimeString[26] == '-') {
             int timeZoneOffset = std::stoi(dateTimeString.substr(27, 2)) * 60;
             timeZoneOffset += std::stoi(dateTimeString.substr(29, 2));
-            timeZoneOffset *= -1;
             sceRtcTickAddMinutes(pTickUtc, pTickUtc, timeZoneOffset);
         }
 
@@ -810,7 +811,7 @@ int PS4_SYSV_ABI sceRtcParseRFC3339(OrbisRtcTick* pTickUtc, const char* pszDateT
     dateTime.second = std::stoi(dateTimeString.substr(17, 2));
     s32 timezone_pos = 22;
     if (dateTimeString[19] == '.') {
-        dateTime.microsecond = std::stoi(dateTimeString.substr(20, 2));
+        dateTime.microsecond = std::stoi(dateTimeString.substr(20, 2)) * 10000;
     } else {
         timezone_pos = 19;
         dateTime.microsecond = 0;
@@ -822,11 +823,11 @@ int PS4_SYSV_ABI sceRtcParseRFC3339(OrbisRtcTick* pTickUtc, const char* pszDateT
         if (dateTimeString[timezone_pos] == '-') {
             int timeZoneOffset = std::stoi(dateTimeString.substr(timezone_pos + 1, 2)) * 60;
             timeZoneOffset += std::stoi(dateTimeString.substr(timezone_pos + 4, 2));
-            timeZoneOffset *= -1;
             sceRtcTickAddMinutes(pTickUtc, pTickUtc, timeZoneOffset);
         } else if (dateTimeString[timezone_pos] == '+') {
             int timeZoneOffset = std::stoi(dateTimeString.substr(timezone_pos + 1, 2)) * 60;
             timeZoneOffset += std::stoi(dateTimeString.substr(timezone_pos + 4, 2));
+            timeZoneOffset *= -1;
             sceRtcTickAddMinutes(pTickUtc, pTickUtc, timeZoneOffset);
         }
     }
