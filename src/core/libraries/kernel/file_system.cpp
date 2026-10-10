@@ -657,9 +657,18 @@ s32 PS4_SYSV_ABI posix_rmdir(const char* path) {
     while (sanitized_path.length() > 1 && sanitized_path.back() == '/') {
         sanitized_path.pop_back();
     }
+    if (sanitized_path == "." || sanitized_path.ends_with("/.")) {
+        *__Error() = POSIX_EINVAL;
+        return -1;
+    }
 
-    const auto* mount = mnt->GetMount(sanitized_path);
-    if (sanitized_path == "/" || (mount && sanitized_path == mount->mount)) {
+    std::string guest_path =
+        Core::FileSys::MntPoints::SanitizeGuestPath(sanitized_path).value_or(sanitized_path);
+    while (guest_path.length() > 1 && guest_path.back() == '/') {
+        guest_path.pop_back();
+    }
+    const auto* mount = mnt->GetMount(guest_path);
+    if (guest_path == "/" || (mount && guest_path == mount->mount)) {
         LOG_WARNING(Kernel_Fs, "Cannot remove mount point '{}'", sanitized_path);
         *__Error() = POSIX_EBUSY;
         return -1;
