@@ -386,7 +386,7 @@ void Translator::BUFFER_ATOMIC(AtomicOp op, const GcnInst& inst) {
             return ir.BufferAtomicCmpSwap(handle, address, vdata_val, cmp_val, buffer_info);
         }
         case AtomicOp::FCmpSwap: {
-            const IR::Value cmp_val = ir.GetVectorReg(vdata + 1);
+            const IR::Value cmp_val = ir.GetVectorReg<IR::F32>(vdata + 1);
             return ir.BufferAtomicFCmpSwap(handle, address, vdata_val, cmp_val, buffer_info);
         }
         case AtomicOp::Add:
