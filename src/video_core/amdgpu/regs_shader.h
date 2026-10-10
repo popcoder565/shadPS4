@@ -214,6 +214,11 @@ struct ComputeProgram {
         return std::bit_cast<T>(address << 8);
     }
 
+    u32 NumVgprs() const noexcept {
+        // Each increment allocates 4 registers, where 0 = 4 registers.
+        return (settings.num_vgprs + 1) * 4;
+    }
+
     u32 SharedMemSize() const noexcept {
         // lds_dwords is in units of 128 dwords. We return bytes.
         return settings.lds_dwords * 128 * 4;
