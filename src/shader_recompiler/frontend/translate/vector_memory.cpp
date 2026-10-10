@@ -549,7 +549,9 @@ void Translator::IMAGE_ATOMIC(AtomicOp op, const GcnInst& inst) {
     info.is_array.Assign(mimg.da);
     info.is_r128.Assign(mimg.r128);
 
-    const IR::Value value = ir.GetVectorReg(val_reg);
+    const bool is_float = op == AtomicOp::Fmax || op == AtomicOp::Fmin;
+    const IR::Value value = is_float ? IR::Value{ir.GetVectorReg<IR::F32>(val_reg)}
+                                     : IR::Value{ir.GetVectorReg(val_reg)};
     const IR::Value tsharp_low =
         ir.CompositeConstruct(ir.GetScalarReg(tsharp_reg), ir.GetScalarReg(tsharp_reg + 1),
                               ir.GetScalarReg(tsharp_reg + 2), ir.GetScalarReg(tsharp_reg + 3));
@@ -600,7 +602,7 @@ void Translator::IMAGE_ATOMIC(AtomicOp op, const GcnInst& inst) {
         }
     }();
     if (mimg.glc) {
-        ir.SetVectorReg(val_reg, IR::U32{prev});
+        ir.SetVectorReg(val_reg, IR::U32F32{prev});
     }
 }
 
