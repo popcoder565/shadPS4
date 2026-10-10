@@ -485,9 +485,12 @@ void* Linker::TlsGetAddr(u64 module_index, u64 offset) {
     }
 
     u8* addr = dtv_table[module_index + 1].pointer;
-    Module* module = m_modules[module_index - 1].get();
     if (!addr) {
         // Module was just loaded by above code. Allocate TLS block for it.
+        const auto it = std::ranges::find(m_modules, module_index,
+                                          [](const auto& module) { return module->tls.modid; });
+        ASSERT_MSG(it != m_modules.end(), "No module with TLS index {}", module_index);
+        const Module* module = it->get();
         const u32 init_image_size = module->tls.init_image_size;
         u8* dest{};
         if (heap_api && heap_api->heap_malloc) {
