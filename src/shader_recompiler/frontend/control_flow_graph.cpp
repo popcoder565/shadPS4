@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include <algorithm>
+#include <magic_enum/magic_enum.hpp>
 #include "common/assert.h"
 #include "common/logging/log.h"
 #include "shader_recompiler/frontend/control_flow_graph.h"
@@ -68,37 +69,82 @@ static bool IgnoresExecMask(const GcnInst& inst) {
     return false;
 }
 
-static std::optional<u32> ResolveSetPcTarget(std::span<const GcnInst> list, u32 setpc_index,
-                                             std::span<const u32> pc_map) {
-    if (setpc_index < 3) {
+static std::optional<s32> GetIntegerConstant(const InstOperand& operand) {
+    switch (operand.field) {
+    case OperandField::ConstZero:
+        return 0;
+    case OperandField::SignedConstIntPos:
+        return static_cast<s32>(operand.code) - SignedConstIntPosMin + 1;
+    case OperandField::SignedConstIntNeg:
+        return -static_cast<s32>(operand.code) + SignedConstIntNegMin - 1;
+    case OperandField::LiteralConst:
+        return static_cast<s32>(operand.code);
+    default:
         return std::nullopt;
     }
+}
 
-    const auto& getpc = list[setpc_index - 3];
-    const auto& arith = list[setpc_index - 2];
-    const auto& setpc = list[setpc_index];
+static bool WritesScalarPair(const GcnInst& inst, u32 reg) {
+    // Scalar loads write several registers, assume at least two for every other destination.
+    const u32 width =
+        inst.category == InstCategory::ScalarMemory ? std::max<u32>(inst.control.smrd.count, 2) : 2;
+    for (u32 i = 0; i < inst.dst_count; i++) {
+        const auto& dst = inst.dst[i];
+        if (dst.field == OperandField::ScalarGPR && dst.code <= reg + 1 && dst.code + width > reg) {
+            return true;
+        }
+    }
+    return false;
+}
 
-    if (getpc.opcode != Opcode::S_GETPC_B64 ||
-        !(arith.opcode == Opcode::S_ADD_U32 || arith.opcode == Opcode::S_SUB_U32) ||
-        setpc.opcode != Opcode::S_SETPC_B64)
-        return std::nullopt;
-
-    if (getpc.dst[0].code != setpc.src[0].code || arith.dst[0].code != setpc.src[0].code)
-        return std::nullopt;
-
-    if (arith.src_count < 2 || arith.src[1].field != OperandField::LiteralConst)
-        return std::nullopt;
-
-    const u32 imm = arith.src[1].code;
-
-    const s32 signed_offset =
-        (arith.opcode == Opcode::S_ADD_U32) ? static_cast<s32>(imm) : -static_cast<s32>(imm);
-
-    const u32 base_pc = pc_map[setpc_index - 3] + getpc.length;
-
-    const u32 result_pc = static_cast<u32>(static_cast<s32>(base_pc) + signed_offset);
-    LOG_DEBUG(Render_Recompiler, "SetPC target: {} + {} = {}", base_pc, signed_offset, result_pc);
-    return result_pc & ~0x3u;
+static std::optional<u32> ResolveSetPcTarget(std::span<const GcnInst> list, u32 setpc_index,
+                                             std::span<const u32> pc_map) {
+    // Walk back through the block looking for s_getpc_b64 followed by an add or subtract of a
+    // constant to the low dword. A carry into the high dword and unrelated instructions may be
+    // scheduled in between.
+    const u32 reg = list[setpc_index].src[0].code;
+    std::optional<s32> offset;
+    for (u32 i = setpc_index; i-- > 0;) {
+        const GcnInst& inst = list[i];
+        if (inst.IsUnconditionalBranch() || inst.IsConditionalBranch()) {
+            return std::nullopt;
+        }
+        if (inst.opcode == Opcode::S_GETPC_B64 && inst.dst[0].code == reg) {
+            if (!offset) {
+                return std::nullopt;
+            }
+            const u32 base_pc = pc_map[i] + inst.length;
+            const u32 result_pc = static_cast<u32>(static_cast<s32>(base_pc) + *offset);
+            LOG_DEBUG(Render_Recompiler, "SetPC target: {} + {} = {}", base_pc, *offset, result_pc);
+            return result_pc & ~0x3u;
+        }
+        if (!WritesScalarPair(inst, reg)) {
+            continue;
+        }
+        if ((inst.opcode == Opcode::S_ADDC_U32 || inst.opcode == Opcode::S_SUBB_U32) &&
+            inst.dst[0].code == reg + 1) {
+            continue;
+        }
+        if (offset || inst.dst[0].code != reg) {
+            return std::nullopt;
+        }
+        const auto is_reg = [reg](const InstOperand& operand) {
+            return operand.field == OperandField::ScalarGPR && operand.code == reg;
+        };
+        if (inst.opcode == Opcode::S_ADD_U32 && is_reg(inst.src[0])) {
+            offset = GetIntegerConstant(inst.src[1]);
+        } else if (inst.opcode == Opcode::S_ADD_U32 && is_reg(inst.src[1])) {
+            offset = GetIntegerConstant(inst.src[0]);
+        } else if (inst.opcode == Opcode::S_SUB_U32 && is_reg(inst.src[0])) {
+            if (const auto value = GetIntegerConstant(inst.src[1])) {
+                offset = -*value;
+            }
+        }
+        if (!offset) {
+            return std::nullopt;
+        }
+    }
+    return std::nullopt;
 }
 
 static constexpr size_t LabelReserveSize = 32;
@@ -129,6 +175,15 @@ void CFG::EmitLabels() {
                 if (auto t = ResolveSetPcTarget(inst_list, i, index_to_pc)) {
                     target = *t;
                 } else {
+                    for (u32 j = i >= 8 ? i - 8 : 0; j <= i; j++) {
+                        const GcnInst& prev = inst_list[j];
+                        LOG_ERROR(Render_Recompiler,
+                                  "{:#x}: {} dst {}:{} src {}:{:#x} {}:{:#x} {}:{:#x}",
+                                  index_to_pc[j], magic_enum::enum_name(prev.opcode),
+                                  u32(prev.dst[0].field), prev.dst[0].code, u32(prev.src[0].field),
+                                  prev.src[0].code, u32(prev.src[1].field), prev.src[1].code,
+                                  u32(prev.src[2].field), prev.src[2].code);
+                    }
                     ASSERT_MSG(
                         false,
                         "S_SETPC_B64 without a resolvable offset at PC {:#x} (Index {}): Involved "
