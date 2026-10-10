@@ -33,7 +33,7 @@ public:
     }
 
     bool Destroy(IndexType index) {
-        if (!m_resources[index - MinIndex].has_value()) {
+        if (!IsValidIndex(index) || !m_resources[index - MinIndex].has_value()) {
             return false;
         }
         m_curr_cursor -= 1;
@@ -43,6 +43,9 @@ public:
     }
 
     ResourceType* Get(IndexType index) {
+        if (!IsValidIndex(index)) {
+            return nullptr;
+        }
         auto& resource = m_resources[index - MinIndex];
         if (!resource.has_value()) {
             return nullptr;
@@ -55,6 +58,10 @@ public:
     }
 
 private:
+    bool IsValidIndex(IndexType index) const {
+        return index >= MinIndex && index < MaxIndex;
+    }
+
     size_t m_curr_cursor = 0;
     std::array<IndexType, MaxIndex - MinIndex> m_free_indices;
     std::array<std::optional<ResourceType>, MaxIndex - MinIndex> m_resources;
