@@ -111,6 +111,8 @@ public:
     void S_BFM_B32(const GcnInst& inst);
     void S_MUL_I32(const GcnInst& inst);
     void S_BFE(const GcnInst& inst, bool is_signed);
+    void S_BFE_B64(const GcnInst& inst, bool is_signed);
+    void S_BFM_B64(const GcnInst& inst);
     void S_BFE_I32(const GcnInst& inst);
     void S_ABSDIFF_I32(const GcnInst& inst);
     void S_NOT_B32(const GcnInst& inst);
@@ -128,6 +130,7 @@ public:
     void S_CMOV_B64(const GcnInst& inst);
     void S_NOT_B64(const GcnInst& inst);
     void S_BREV_B32(const GcnInst& inst);
+    void S_BREV_B64(const GcnInst& inst);
     void S_BCNT0_I32_B32(const GcnInst& inst);
     void S_BCNT0_I32_B64(const GcnInst& inst);
     void S_BCNT1_I32_B32(const GcnInst& inst);
@@ -137,10 +140,13 @@ public:
     void S_FF1_I32_B64(const GcnInst& inst);
     void S_FLBIT_I32_B32(const GcnInst& inst);
     void S_FLBIT_I32_B64(const GcnInst& inst);
+    void S_FLBIT_I32(const GcnInst& inst);
+    void S_FLBIT_I32_I64(const GcnInst& inst);
     void S_BITSET_B32(const GcnInst& inst, u32 bit_value);
     void S_BITSET_B64(const GcnInst& inst, u32 bit_value);
     void S_GETPC_B64(const GcnInst& inst);
     void S_SAVEEXEC_B64(NegateMode negate, bool is_or, const GcnInst& inst);
+    void S_XOR_SAVEEXEC_B64(bool negate, const GcnInst& inst);
     void S_ABS_I32(const GcnInst& inst);
     void S_SEXT_I32(const GcnInst& inst, u32 bits);
 

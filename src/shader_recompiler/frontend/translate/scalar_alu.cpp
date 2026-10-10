@@ -92,6 +92,12 @@ void Translator::EmitScalarAlu(const GcnInst& inst) {
             return S_BFE(inst, true);
         case Opcode::S_BFE_U32:
             return S_BFE(inst, false);
+        case Opcode::S_BFE_I64:
+            return S_BFE_B64(inst, true);
+        case Opcode::S_BFE_U64:
+            return S_BFE_B64(inst, false);
+        case Opcode::S_BFM_B64:
+            return S_BFM_B64(inst);
         case Opcode::S_ABSDIFF_I32:
             return S_ABSDIFF_I32(inst);
 
@@ -110,6 +116,8 @@ void Translator::EmitScalarAlu(const GcnInst& inst) {
             break;
         case Opcode::S_BREV_B32:
             return S_BREV_B32(inst);
+        case Opcode::S_BREV_B64:
+            return S_BREV_B64(inst);
         case Opcode::S_BCNT0_I32_B32:
             return S_BCNT0_I32_B32(inst);
         case Opcode::S_BCNT0_I32_B64:
@@ -128,6 +136,10 @@ void Translator::EmitScalarAlu(const GcnInst& inst) {
             return S_FLBIT_I32_B32(inst);
         case Opcode::S_FLBIT_I32_B64:
             return S_FLBIT_I32_B64(inst);
+        case Opcode::S_FLBIT_I32:
+            return S_FLBIT_I32(inst);
+        case Opcode::S_FLBIT_I32_I64:
+            return S_FLBIT_I32_I64(inst);
         case Opcode::S_BITSET0_B32:
             return S_BITSET_B32(inst, 0);
         case Opcode::S_BITSET1_B32:
@@ -148,6 +160,10 @@ void Translator::EmitScalarAlu(const GcnInst& inst) {
             return S_SAVEEXEC_B64(NegateMode::Result, false, inst);
         case Opcode::S_NOR_SAVEEXEC_B64:
             return S_SAVEEXEC_B64(NegateMode::Result, true, inst);
+        case Opcode::S_XOR_SAVEEXEC_B64:
+            return S_XOR_SAVEEXEC_B64(false, inst);
+        case Opcode::S_XNOR_SAVEEXEC_B64:
+            return S_XOR_SAVEEXEC_B64(true, inst);
         case Opcode::S_ABS_I32:
             return S_ABS_I32(inst);
         case Opcode::S_SEXT_I32_I8:
@@ -488,6 +504,32 @@ void Translator::S_BFE(const GcnInst& inst, bool is_signed) {
     ir.SetScc(ir.INotEqual(result, ir.Imm32(0)));
 }
 
+void Translator::S_BFE_B64(const GcnInst& inst, bool is_signed) {
+    const IR::U64 src0{GetSrc64(inst.src[0])};
+    const IR::U32 src1{GetSrc(inst.src[1])};
+    const IR::U32 offset{ir.BitwiseAnd(src1, ir.Imm32(0x3F))};
+    const IR::U32 count{ir.BitFieldExtract(src1, ir.Imm32(16), ir.Imm32(7))};
+    const IR::U64 shifted{ir.ShiftRightLogical(src0, offset)};
+    // Move the field to the top and back down to clear or sign extend the bits above it. A field
+    // of 64 bits or more is the shifted source itself.
+    const IR::U1 partial{ir.ILessThan(count, ir.Imm32(64), false)};
+    const IR::U32 unused_bits{
+        ir.Select(partial, ir.ISub(ir.Imm32(64), ir.UMax(count, ir.Imm32(1))), ir.Imm32(0))};
+    const IR::U64 top{ir.ShiftLeftLogical(shifted, unused_bits)};
+    const IR::U64 field{is_signed ? ir.ShiftRightArithmetic(top, unused_bits)
+                                  : ir.ShiftRightLogical(top, unused_bits)};
+    const IR::U64 result{ir.Select(ir.IEqual(count, ir.Imm32(0)), ir.Imm64(u64{0}), field)};
+    SetDst64(inst.dst[0], result);
+    ir.SetScc(ir.INotEqual(result, ir.Imm64(u64{0})));
+}
+
+void Translator::S_BFM_B64(const GcnInst& inst) {
+    const IR::U32 width{ir.BitwiseAnd(GetSrc(inst.src[0]), ir.Imm32(0x3F))};
+    const IR::U32 offset{ir.BitwiseAnd(GetSrc(inst.src[1]), ir.Imm32(0x3F))};
+    const IR::U64 mask{ir.ISub(ir.ShiftLeftLogical(ir.Imm64(u64{1}), width), ir.Imm64(u64{1}))};
+    SetDst64(inst.dst[0], ir.ShiftLeftLogical(mask, offset));
+}
+
 void Translator::S_ABSDIFF_I32(const GcnInst& inst) {
     const IR::U32 src0{GetSrc(inst.src[0])};
     const IR::U32 src1{GetSrc(inst.src[1])};
@@ -585,6 +627,14 @@ void Translator::S_BREV_B32(const GcnInst& inst) {
     SetDst(inst.dst[0], ir.BitReverse(GetSrc(inst.src[0])));
 }
 
+void Translator::S_BREV_B64(const GcnInst& inst) {
+    const auto src0{ir.UnpackUint2x32(GetSrc64(inst.src[0]))};
+    const IR::U32 lo{ir.CompositeExtract(src0, 0)};
+    const IR::U32 hi{ir.CompositeExtract(src0, 1)};
+    SetDst64(inst.dst[0],
+             ir.PackUint2x32(ir.CompositeConstruct(ir.BitReverse(hi), ir.BitReverse(lo))));
+}
+
 void Translator::S_BCNT0_I32_B32(const GcnInst& inst) {
     const IR::U32 result = ir.BitCount(ir.BitwiseNot(GetSrc(inst.src[0])));
     SetDst(inst.dst[0], result);
@@ -648,6 +698,26 @@ void Translator::S_FLBIT_I32_B64(const GcnInst& inst) {
     SetDst(inst.dst[0], IR::U32{ir.Select(cond, pos_from_left, ir.Imm32(~0U))});
 }
 
+void Translator::S_FLBIT_I32(const GcnInst& inst) {
+    const IR::U32 src0{GetSrc(inst.src[0])};
+    const IR::U32 msb_pos = ir.FindSMsb(src0);
+    const IR::U32 pos_from_left = ir.ISub(ir.Imm32(31), msb_pos);
+    // Select 0xFFFFFFFF if every bit matches the sign bit
+    const IR::U32 minus_one = ir.Imm32(~0U);
+    const IR::U1 cond =
+        ir.LogicalAnd(ir.INotEqual(src0, ir.Imm32(0)), ir.INotEqual(src0, minus_one));
+    SetDst(inst.dst[0], IR::U32{ir.Select(cond, pos_from_left, minus_one)});
+}
+
+void Translator::S_FLBIT_I32_I64(const GcnInst& inst) {
+    const IR::U64 src0{GetSrc64(inst.src[0])};
+    // The bits that differ from the sign bit are the ones set in src0 ^ (src0 >> 63).
+    const IR::U64 diff{ir.BitwiseXor(src0, ir.ShiftRightArithmetic(src0, ir.Imm32(63)))};
+    const IR::U32 pos_from_left = ir.ISub(ir.Imm32(63), ir.FindUMsb(diff));
+    const IR::U1 cond = ir.INotEqual(diff, ir.Imm64(u64{0}));
+    SetDst(inst.dst[0], IR::U32{ir.Select(cond, pos_from_left, ir.Imm32(~0U))});
+}
+
 void Translator::S_BITSET_B32(const GcnInst& inst, u32 bit_value) {
     const IR::U32 old_value{GetSrc(inst.dst[0])};
     const IR::U32 offset{ir.BitFieldExtract(GetSrc(inst.src[0]), ir.Imm32(0U), ir.Imm32(5U))};
@@ -674,6 +744,20 @@ void Translator::S_SAVEEXEC_B64(NegateMode negate, bool is_or, const GcnInst& in
     }
     IR::U64 result = is_or ? ir.BitwiseOr(exec, src) : ir.BitwiseAnd(exec, src);
     if (negate == NegateMode::Result) {
+        result = ir.BitwiseNot(result);
+    }
+    const IR::U1 result_u1 = ir.InverseBallot(result);
+    ir.SetExec(result_u1);
+    ir.SetScc(result_u1);
+}
+
+void Translator::S_XOR_SAVEEXEC_B64(bool negate, const GcnInst& inst) {
+    const IR::U64 exec{ir.Ballot(ir.GetExec())};
+    const IR::U64 src{GetSrc64(inst.src[0])};
+    SetDst64(inst.dst[0], exec);
+
+    IR::U64 result = ir.BitwiseXor(exec, src);
+    if (negate) {
         result = ir.BitwiseNot(result);
     }
     const IR::U1 result_u1 = ir.InverseBallot(result);
