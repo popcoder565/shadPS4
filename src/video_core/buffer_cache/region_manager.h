@@ -97,6 +97,13 @@ public:
             update_watchers |= UpdateProtection<cpu_op, gpu_op>(write_prot, read_prot,
                                                                 watcher_bounds, index, mask);
         });
+        // State must change before protection is removed and after it is added, so the lock free
+        // HasEffect check never sees clean state for a page the guest can already write.
+        constexpr bool removes_protection = cpu_op == StateOp::Set || gpu_op == StateOp::Clear;
+        if constexpr (removes_protection) {
+            IterateWords(bounds,
+                         [&](u64 index, u64 mask) { UpdateState<cpu_op, gpu_op>(index, mask); });
+        }
         const auto write_op = GetPageOp<Type::CPU>(cpu_op);
         const auto read_op = GetPageOp<Type::GPU>(gpu_op);
         update_watchers &= write_op != PageOp::None || read_op != PageOp::None;
@@ -104,8 +111,10 @@ public:
             tracker->UpdatePageWatchersForRegion(cpu_addr, watcher_bounds, write_prot, read_prot,
                                                  write_op, read_op);
         }
-        IterateWords(bounds,
-                     [&](u64 index, u64 mask) { UpdateState<cpu_op, gpu_op>(index, mask); });
+        if constexpr (!removes_protection) {
+            IterateWords(bounds,
+                         [&](u64 index, u64 mask) { UpdateState<cpu_op, gpu_op>(index, mask); });
+        }
         if constexpr (locked) {
             mutex.unlock();
         }
