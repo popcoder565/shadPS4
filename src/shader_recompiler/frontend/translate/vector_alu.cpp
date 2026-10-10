@@ -1611,12 +1611,7 @@ void Translator::V_MAD_U64_U32(const GcnInst& inst) {
     const IR::U1 less_src0 = ir.ILessThan(sum_result, mul_result, false);
     const IR::U1 less_src1 = ir.ILessThan(sum_result, src2, false);
     const IR::U1 did_overflow = ir.LogicalOr(less_src0, less_src1);
-
-    const auto unpacked = ir.UnpackUint2x32(ir.Ballot(did_overflow));
-    const IR::U32 lo{ir.CompositeExtract(unpacked, 0U)};
-    const IR::U32 hi{ir.CompositeExtract(unpacked, 1U)};
-    ir.SetVccLo(lo);
-    ir.SetVccHi(hi);
+    SetDst64(inst.dst[1], ir.Ballot(did_overflow));
 }
 
 void Translator::V_LSHLREV_B16(const GcnInst& inst) {
