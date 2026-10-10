@@ -229,7 +229,7 @@ s32 PS4_SYSV_ABI scePlayGoGetToDoList(OrbisPlayGoHandle handle, OrbisPlayGoToDo*
 
 u64 scePlayGoConvertLanguage(u64 systemLang) {
     if (systemLang >= 0 && systemLang < 48) {
-        return (1 << (64 - systemLang - 1));
+        return 1ULL << (63 - systemLang);
     } else {
         return 0;
     }
