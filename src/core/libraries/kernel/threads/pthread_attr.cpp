@@ -155,7 +155,7 @@ int PS4_SYSV_ABI posix_pthread_attr_setscope(PthreadAttrT* attr, PthreadAttrFlag
     if (attr == nullptr || *attr == nullptr) {
         return POSIX_EINVAL;
     }
-    if (contentionscope != PthreadAttrFlags::ScopeProcess ||
+    if (contentionscope != PthreadAttrFlags::ScopeProcess &&
         contentionscope != PthreadAttrFlags::ScopeSystem) {
         return POSIX_EINVAL;
     }
