@@ -681,11 +681,17 @@ s32 PS4_SYSV_ABI posix_rmdir(const char* path) {
         return -1;
     }
 
-    s32 result = fs::remove_all(dir_name, ec);
+    fs::remove(dir_name, ec);
 
     if (ec) {
-        LOG_ERROR(Kernel_Fs, "remove_all failed: {}", ec.message());
-        *__Error() = (ec.value() == EACCES || ec.value() == EPERM) ? POSIX_EACCES : POSIX_EIO;
+        LOG_ERROR(Kernel_Fs, "remove failed: {}", ec.message());
+        if (ec == std::errc::directory_not_empty) {
+            *__Error() = POSIX_ENOTEMPTY;
+        } else if (ec == std::errc::permission_denied || ec == std::errc::operation_not_permitted) {
+            *__Error() = POSIX_EACCES;
+        } else {
+            *__Error() = POSIX_EIO;
+        }
         return -1;
     }
     return ORBIS_OK;
