@@ -78,6 +78,8 @@ void Translator::EmitDataShare(const GcnInst& inst) {
         return DS_READ(32, false, true, false, inst);
     case Opcode::DS_READ2ST64_B32:
         return DS_READ(32, false, true, true, inst);
+    case Opcode::DS_READ_I16:
+        return DS_READ(16, true, false, false, inst);
     case Opcode::DS_READ_U16:
         return DS_READ(16, false, false, false, inst);
     case Opcode::DS_CONSUME:
@@ -304,7 +306,9 @@ void Translator::DS_READ(int bit_size, bool is_signed, bool is_pair, bool stride
         } else if (bit_size == 32) {
             ir.SetVectorReg(dst_reg, IR::U32{data});
         } else if (bit_size == 16) {
-            ir.SetVectorReg(dst_reg++, IR::U32{ir.UConvert(32, IR::U16{data})});
+            const IR::U16 value{data};
+            ir.SetVectorReg(dst_reg,
+                            IR::U32{is_signed ? ir.SConvert(32, value) : ir.UConvert(32, value)});
         }
     }
 }
