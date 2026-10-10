@@ -382,10 +382,17 @@ int PS4_SYSV_ABI posix_pthread_getthreadid_np() {
     return g_curthread->tid;
 }
 
+static void CopyThreadName(const Pthread* thread, char* name) {
+    static constexpr size_t ThreadNameSize = 32;
+    const size_t length = std::min(thread->name.size(), ThreadNameSize - 1);
+    std::memcpy(name, thread->name.data(), length);
+    name[length] = '\0';
+}
+
 int PS4_SYSV_ABI posix_pthread_getname_np(PthreadT thread, char* name) {
     if (thread == g_curthread) {
         // Can skip locking and reference logic if thread is curthread.
-        std::memcpy(name, thread->name.data(), std::min<size_t>(thread->name.size(), 32));
+        CopyThreadName(thread, name);
         return ORBIS_OK;
     }
 
@@ -400,7 +407,7 @@ int PS4_SYSV_ABI posix_pthread_getname_np(PthreadT thread, char* name) {
 
     // Get the thread name
     if (thread->state != PthreadState::Dead) {
-        std::memcpy(name, thread->name.data(), std::min<size_t>(thread->name.size(), 32));
+        CopyThreadName(thread, name);
     }
 
     // Unlock and remove reference.
