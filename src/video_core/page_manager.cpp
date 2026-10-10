@@ -145,6 +145,7 @@ struct PageManager::Impl {
         for (u64 page = page_start; page != page_end; ++page) {
             PageState* state = cached_pages.find(page);
             if (!state) {
+                release_pending();
                 continue;
             }
 
@@ -210,6 +211,7 @@ struct PageManager::Impl {
         for (u64 page = page_start; page != page_end; ++page) {
             PageState* state = cached_pages.find(base_page + page);
             if (!state) {
+                release_pending();
                 continue;
             }
 
