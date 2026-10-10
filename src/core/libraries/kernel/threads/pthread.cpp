@@ -300,7 +300,12 @@ int PS4_SYSV_ABI posix_pthread_create_name_np(PthreadT* thread, const PthreadAtt
         new_thread->attr = PthreadAttrDefault;
     } else {
         new_thread->attr = *(*attr);
+        new_thread->attr.cpuset = nullptr;
         new_thread->attr.cpusetsize = 0;
+        if ((*attr)->cpuset != nullptr) {
+            PthreadAttrT new_attr = &new_thread->attr;
+            posix_pthread_attr_setaffinity_np(&new_attr, (*attr)->cpusetsize, (*attr)->cpuset);
+        }
     }
     if (curthread != nullptr && new_thread->attr.sched_inherit == PthreadInheritSched) {
         if (True(curthread->attr.flags & PthreadAttrFlags::ScopeSystem)) {

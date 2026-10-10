@@ -259,6 +259,19 @@ int PS4_SYSV_ABI posix_pthread_attr_get_np(PthreadT pthread, PthreadAttrT* dstat
     if (True(pthread->flags & ThreadFlags::Detached)) {
         attr.flags |= PthreadAttrFlags::Detached;
     }
+    // Copy the affinity into the destination's own buffer instead of sharing the thread's.
+    attr.cpuset = dst->cpuset;
+    attr.cpusetsize = dst->cpusetsize;
+    if (pthread->attr.cpuset != nullptr) {
+        if (attr.cpuset == nullptr) {
+            attr.cpuset = static_cast<Cpuset*>(calloc(1, sizeof(Cpuset)));
+            attr.cpusetsize = sizeof(Cpuset);
+        }
+        memcpy(attr.cpuset, pthread->attr.cpuset,
+               std::min(attr.cpusetsize, pthread->attr.cpusetsize));
+    } else if (attr.cpuset != nullptr) {
+        memset(attr.cpuset, -1, attr.cpusetsize);
+    }
     pthread->lock->unlock();
     memcpy(dst, &attr, sizeof(PthreadAttr));
     return ret;
