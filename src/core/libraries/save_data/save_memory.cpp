@@ -3,6 +3,7 @@
 
 #include "save_memory.h"
 
+#include <algorithm>
 #include <condition_variable>
 #include <filesystem>
 #include <mutex>
@@ -45,12 +46,26 @@ struct SlotData {
 static std::mutex g_slot_mtx;
 static std::unordered_map<u32, SlotData> g_attached_slots;
 
+static void LoadMemory(SlotData& data) {
+    auto& memory = data.memory_cache;
+    if (!memory.empty()) {
+        return;
+    }
+    IOFile f{data.folder_path / FilenameSaveDataMemory, Common::FS::FileAccessMode::Read};
+    memory.resize(std::max<size_t>(data.memory_cache_size, f.GetSize()));
+    if (f.IsOpen()) {
+        f.Seek(0);
+        f.ReadSpan(std::span{memory});
+    }
+}
+
 void PersistMemory(u32 slot_id, bool lock) {
     std::unique_lock lck{g_slot_mtx, std::defer_lock};
     if (lock) {
         lck.lock();
     }
     auto& data = g_attached_slots[slot_id];
+    LoadMemory(data);
     auto memoryPath = data.folder_path / FilenameSaveDataMemory;
     fs::create_directories(memoryPath.parent_path());
 
@@ -198,15 +213,8 @@ void SaveSFO(u32 slot_id) {
 void ReadMemory(u32 slot_id, void* buf, size_t buf_size, int64_t offset) {
     std::lock_guard lk{g_slot_mtx};
     auto& data = g_attached_slots[slot_id];
+    LoadMemory(data);
     auto& memory = data.memory_cache;
-    if (memory.empty()) { // Load file
-        memory.resize(data.memory_cache_size);
-        IOFile f{data.folder_path / FilenameSaveDataMemory, Common::FS::FileAccessMode::Read};
-        if (f.IsOpen()) {
-            f.Seek(0);
-            f.ReadSpan(std::span{memory});
-        }
-    }
     s64 read_size = buf_size;
     if (read_size + offset > memory.size()) {
         read_size = memory.size() - offset;
@@ -217,6 +225,7 @@ void ReadMemory(u32 slot_id, void* buf, size_t buf_size, int64_t offset) {
 void WriteMemory(u32 slot_id, void* buf, size_t buf_size, int64_t offset) {
     std::lock_guard lk{g_slot_mtx};
     auto& data = g_attached_slots[slot_id];
+    LoadMemory(data);
     auto& memory = data.memory_cache;
     if (offset + buf_size > memory.size()) {
         memory.resize(offset + buf_size);
