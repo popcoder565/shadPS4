@@ -1053,6 +1053,7 @@ s64 MemoryManager::ProtectBytes(VAddr addr, VirtualMemoryArea& vma_base, u64 siz
     const auto adjusted_size = std::min<u64>(vma_base.size - start_in_vma, size);
     const MemoryProt old_prot = vma_base.prot;
     const MemoryProt new_prot = prot;
+    const VMAType vma_type = vma_base.type;
 
     if (vma_base.type == VMAType::Free || vma_base.type == VMAType::PoolReserved) {
         // On PS4, protecting freed memory does nothing.
@@ -1099,7 +1100,7 @@ s64 MemoryManager::ProtectBytes(VAddr addr, VirtualMemoryArea& vma_base, u64 siz
     new_vma.prot = prot;
     MergeAdjacent(vma_map, new_it);
 
-    if (vma_base.type == VMAType::Reserved) {
+    if (vma_type == VMAType::Reserved) {
         // On PS4, protections change vma_map, but don't apply.
         // Return early to avoid protecting memory that isn't mapped in address space.
         return adjusted_size;
