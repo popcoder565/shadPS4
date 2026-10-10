@@ -78,6 +78,8 @@ void Translator::EmitScalarAlu(const GcnInst& inst) {
             return S_LSHL_B64(inst);
         case Opcode::S_LSHR_B32:
             return S_LSHR_B32(inst);
+        case Opcode::S_LSHR_B64:
+            return S_LSHR_B64(inst);
         case Opcode::S_ASHR_I32:
             return S_ASHR_I32(inst);
         case Opcode::S_ASHR_I64:
@@ -98,16 +100,26 @@ void Translator::EmitScalarAlu(const GcnInst& inst) {
             return S_MOV(inst);
         case Opcode::S_MOV_B64:
             return S_MOV_B64(inst);
+        case Opcode::S_CMOV_B32:
+            return S_CMOV_B32(inst);
+        case Opcode::S_CMOV_B64:
+            return S_CMOV_B64(inst);
         case Opcode::S_NOT_B64:
             return S_NOT_B64(inst);
         case Opcode::S_WQM_B64:
             break;
         case Opcode::S_BREV_B32:
             return S_BREV_B32(inst);
+        case Opcode::S_BCNT0_I32_B32:
+            return S_BCNT0_I32_B32(inst);
+        case Opcode::S_BCNT0_I32_B64:
+            return S_BCNT0_I32_B64(inst);
         case Opcode::S_BCNT1_I32_B32:
             return S_BCNT1_I32_B32(inst);
         case Opcode::S_BCNT1_I32_B64:
             return S_BCNT1_I32_B64(inst);
+        case Opcode::S_FF0_I32_B32:
+            return S_FF0_I32_B32(inst);
         case Opcode::S_FF1_I32_B32:
             return S_FF1_I32_B32(inst);
         case Opcode::S_FF1_I32_B64:
@@ -130,6 +142,10 @@ void Translator::EmitScalarAlu(const GcnInst& inst) {
             return S_SAVEEXEC_B64(NegateMode::Src1, true, inst);
         case Opcode::S_ABS_I32:
             return S_ABS_I32(inst);
+        case Opcode::S_SEXT_I32_I8:
+            return S_SEXT_I32(inst, 8);
+        case Opcode::S_SEXT_I32_I16:
+            return S_SEXT_I32(inst, 16);
         default:
             LogMissingOpcode(inst);
         }
@@ -427,6 +443,14 @@ void Translator::S_ASHR_I32(const GcnInst& inst) {
     ir.SetScc(ir.INotEqual(result, ir.Imm32(0)));
 }
 
+void Translator::S_LSHR_B64(const GcnInst& inst) {
+    const IR::U64 src0{GetSrc64(inst.src[0])};
+    const IR::U64 src1{GetSrc64(inst.src[1])};
+    const IR::U64 result{ir.ShiftRightLogical(src0, ir.BitwiseAnd(src1, ir.Imm64(u64(0x3F))))};
+    SetDst64(inst.dst[0], result);
+    ir.SetScc(ir.INotEqual(result, ir.Imm64(u64(0))));
+}
+
 void Translator::S_ASHR_I64(const GcnInst& inst) {
     const IR::U64 src0{GetSrc64(inst.src[0])};
     const IR::U64 src1{GetSrc64(inst.src[1])};
@@ -532,6 +556,16 @@ void Translator::S_MOV_B64(const GcnInst& inst) {
     SetDst64(inst.dst[0], GetSrc64(inst.src[0]));
 }
 
+void Translator::S_CMOV_B32(const GcnInst& inst) {
+    const IR::U32 src0{GetSrc(inst.src[0])};
+    SetDst(inst.dst[0], IR::U32{ir.Select(ir.GetScc(), src0, GetSrc(inst.dst[0]))});
+}
+
+void Translator::S_CMOV_B64(const GcnInst& inst) {
+    const IR::U64 src0{GetSrc64(inst.src[0])};
+    SetDst64(inst.dst[0], IR::U64{ir.Select(ir.GetScc(), src0, GetSrc64(inst.dst[0]))});
+}
+
 void Translator::S_NOT_B64(const GcnInst& inst) {
     const IR::U64 src0{GetSrc64(inst.src[0])};
     const IR::U64 result = ir.BitwiseNot(src0);
@@ -541,6 +575,18 @@ void Translator::S_NOT_B64(const GcnInst& inst) {
 
 void Translator::S_BREV_B32(const GcnInst& inst) {
     SetDst(inst.dst[0], ir.BitReverse(GetSrc(inst.src[0])));
+}
+
+void Translator::S_BCNT0_I32_B32(const GcnInst& inst) {
+    const IR::U32 result = ir.BitCount(ir.BitwiseNot(GetSrc(inst.src[0])));
+    SetDst(inst.dst[0], result);
+    ir.SetScc(ir.INotEqual(result, ir.Imm32(0)));
+}
+
+void Translator::S_BCNT0_I32_B64(const GcnInst& inst) {
+    const IR::U32 result = ir.BitCount(ir.BitwiseNot(GetSrc64(inst.src[0])));
+    SetDst(inst.dst[0], result);
+    ir.SetScc(ir.INotEqual(result, ir.Imm32(0)));
 }
 
 void Translator::S_BCNT1_I32_B32(const GcnInst& inst) {
@@ -553,6 +599,12 @@ void Translator::S_BCNT1_I32_B64(const GcnInst& inst) {
     const IR::U32 result = ir.BitCount(GetSrc64(inst.src[0]));
     SetDst(inst.dst[0], result);
     ir.SetScc(ir.INotEqual(result, ir.Imm32(0)));
+}
+
+void Translator::S_FF0_I32_B32(const GcnInst& inst) {
+    const IR::U32 src0{GetSrc(inst.src[0])};
+    const IR::U32 result{ir.FindILsb(ir.BitwiseNot(src0))};
+    SetDst(inst.dst[0], result);
 }
 
 void Translator::S_FF1_I32_B32(const GcnInst& inst) {
@@ -625,6 +677,11 @@ void Translator::S_ABS_I32(const GcnInst& inst) {
     const auto result = ir.IAbs(GetSrc(inst.src[0]));
     SetDst(inst.dst[0], result);
     ir.SetScc(ir.INotEqual(result, ir.Imm32(0)));
+}
+
+void Translator::S_SEXT_I32(const GcnInst& inst, u32 bits) {
+    const IR::U32 src0{GetSrc(inst.src[0])};
+    SetDst(inst.dst[0], ir.BitFieldExtract(src0, ir.Imm32(0), ir.Imm32(bits), true));
 }
 
 // SOPC

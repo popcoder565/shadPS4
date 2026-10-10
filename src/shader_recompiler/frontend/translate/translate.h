@@ -105,6 +105,7 @@ public:
     void S_LSHL_B32(const GcnInst& inst);
     void S_LSHL_B64(const GcnInst& inst);
     void S_LSHR_B32(const GcnInst& inst);
+    void S_LSHR_B64(const GcnInst& inst);
     void S_ASHR_I32(const GcnInst& inst);
     void S_ASHR_I64(const GcnInst& inst);
     void S_BFM_B32(const GcnInst& inst);
@@ -123,10 +124,15 @@ public:
     // SOP1
     void S_MOV(const GcnInst& inst);
     void S_MOV_B64(const GcnInst& inst);
+    void S_CMOV_B32(const GcnInst& inst);
+    void S_CMOV_B64(const GcnInst& inst);
     void S_NOT_B64(const GcnInst& inst);
     void S_BREV_B32(const GcnInst& inst);
+    void S_BCNT0_I32_B32(const GcnInst& inst);
+    void S_BCNT0_I32_B64(const GcnInst& inst);
     void S_BCNT1_I32_B32(const GcnInst& inst);
     void S_BCNT1_I32_B64(const GcnInst& inst);
+    void S_FF0_I32_B32(const GcnInst& inst);
     void S_FF1_I32_B32(const GcnInst& inst);
     void S_FF1_I32_B64(const GcnInst& inst);
     void S_FLBIT_I32_B32(const GcnInst& inst);
@@ -136,6 +142,7 @@ public:
     void S_GETPC_B64(const GcnInst& inst);
     void S_SAVEEXEC_B64(NegateMode negate, bool is_or, const GcnInst& inst);
     void S_ABS_I32(const GcnInst& inst);
+    void S_SEXT_I32(const GcnInst& inst, u32 bits);
 
     // SOPC
     void S_CMP(ConditionOp cond, bool is_signed, const GcnInst& inst);
