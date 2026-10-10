@@ -587,7 +587,7 @@ int PS4_SYSV_ABI sceRtcGetDosTime(OrbisRtcDateTime* pTime, u32* dosTime) {
         return isValid;
     }
 
-    *dosTime |= (pTime->second / 2) & 0x1F;
+    *dosTime = (pTime->second / 2) & 0x1F;
     *dosTime |= (pTime->minute & 0x3F) << 5;
     *dosTime |= (pTime->hour & 0x1F) << 11;
     *dosTime |= (pTime->day & 0x1F) << 16;
