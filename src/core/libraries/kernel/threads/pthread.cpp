@@ -62,6 +62,9 @@ static void ExitThread() {
     curthread->lock->lock();
     curthread->state = PthreadState::Dead;
     ASSERT(False(curthread->flags & ThreadFlags::NeedSuspend));
+    free(curthread->attr.cpuset);
+    curthread->attr.cpuset = nullptr;
+    curthread->attr.cpusetsize = 0;
 
     /*
      * Thread was created with initial refcount 1, we drop the
@@ -328,6 +331,7 @@ int PS4_SYSV_ABI posix_pthread_create_name_np(PthreadT* thread, const PthreadAtt
 
     if (thread_state->CreateStack(&new_thread->attr) != 0) {
         /* Insufficient memory to create a stack: */
+        free(new_thread->attr.cpuset);
         thread_state->Free(curthread, new_thread);
         return POSIX_EAGAIN;
     }
