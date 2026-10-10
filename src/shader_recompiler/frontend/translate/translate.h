@@ -99,9 +99,8 @@ public:
     void S_CSELECT_B64(const GcnInst& inst);
     void S_AND_B32(NegateMode negate, const GcnInst& inst);
     void S_AND_B64(NegateMode negate, const GcnInst& inst);
-    void S_OR_B32(const GcnInst& inst);
+    void S_OR_B32(NegateMode negate, bool is_xor, const GcnInst& inst);
     void S_OR_B64(NegateMode negate, bool is_xor, const GcnInst& inst);
-    void S_XOR_B32(const GcnInst& inst);
     void S_LSHL_B32(const GcnInst& inst);
     void S_LSHL_B64(const GcnInst& inst);
     void S_LSHR_B32(const GcnInst& inst);
