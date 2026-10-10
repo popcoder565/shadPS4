@@ -38,7 +38,10 @@ bool PSF::Open(const std::filesystem::path& filepath) {
     }
 
     const u64 psfSize = file.GetSize();
-    ASSERT_MSG(psfSize != 0, "SFO file at {} is empty!", filepath.string());
+    if (psfSize == 0) {
+        LOG_ERROR(Core, "SFO file at {} is empty!", filepath.string());
+        return false;
+    }
     std::vector<u8> psf(psfSize);
     file.Seek(0);
     file.Read(psf);
@@ -63,7 +66,12 @@ bool PSF::Open(const std::vector<u8>& psf_buffer) {
     map_integers.clear();
 
     // Parse file contents
+    const u64 size = psf_buffer.size();
     PSFHeader header{};
+    if (size < sizeof(header)) {
+        LOG_ERROR(Core, "PSF data is too small: {} bytes", size);
+        return false;
+    }
     std::memcpy(&header, psf_data, sizeof(header));
 
     if (header.magic != PSF_MAGIC) {
@@ -74,18 +82,30 @@ bool PSF::Open(const std::vector<u8>& psf_buffer) {
         LOG_ERROR(Core, "Unsupported PSF version: 0x{:08x}", header.version);
         return false;
     }
+    if (sizeof(PSFHeader) + u64{header.index_table_entries} * sizeof(PSFRawEntry) > size) {
+        LOG_ERROR(Core, "PSF index table is truncated");
+        return false;
+    }
 
     for (u32 i = 0; i < header.index_table_entries; i++) {
         PSFRawEntry raw_entry{};
         std::memcpy(&raw_entry, psf_data + sizeof(PSFHeader) + i * sizeof(PSFRawEntry),
                     sizeof(raw_entry));
 
+        const u64 key_offset = u64{header.key_table_offset} + raw_entry.key_offset;
+        const u64 data_offset = u64{header.data_table_offset} + raw_entry.data_offset;
+        if (key_offset >= size || data_offset + raw_entry.param_len > size) {
+            LOG_ERROR(Core, "PSF entry {} is out of bounds", i);
+            return false;
+        }
+
         Entry& entry = entry_list.emplace_back();
-        entry.key = std::string{(char*)(psf_data + header.key_table_offset + raw_entry.key_offset)};
+        const auto* key = reinterpret_cast<const char*>(psf_data + key_offset);
+        entry.key = std::string{key, strnlen(key, size - key_offset)};
         entry.param_fmt = static_cast<PSFEntryFmt>(raw_entry.param_fmt.Raw());
         entry.max_len = raw_entry.param_max_len;
 
-        const u8* data = psf_data + header.data_table_offset + raw_entry.data_offset;
+        const u8* data = psf_data + data_offset;
 
         switch (entry.param_fmt) {
         case PSFEntryFmt::Binary: {
@@ -94,7 +114,8 @@ bool PSF::Open(const std::vector<u8>& psf_buffer) {
             map_binaries.emplace(i, std::move(value));
         } break;
         case PSFEntryFmt::Text: {
-            std::string c_str{reinterpret_cast<const char*>(data)};
+            const auto* text = reinterpret_cast<const char*>(data);
+            std::string c_str{text, strnlen(text, raw_entry.param_len)};
             map_strings.emplace(i, std::move(c_str));
         } break;
         case PSFEntryFmt::Integer: {
