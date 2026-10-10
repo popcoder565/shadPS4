@@ -8,6 +8,7 @@
 #include "core/libraries/kernel/posix_error.h"
 #include "core/libraries/kernel/threads/exception.h"
 #include "core/libraries/kernel/threads/pthread.h"
+#include "core/libraries/kernel/threads/thread_state.h"
 #include "core/libraries/libs.h"
 #include "core/signals.h"
 
@@ -545,16 +546,35 @@ SigHandler PS4_SYSV_ABI posix_signal(s32 sig, SigHandler func) {
     return reinterpret_cast<SigHandler>(-1);
 }
 
-s32 PS4_SYSV_ABI posix_pthread_kill(PthreadT thread, s32 sig) {
-    if (sig < 1 || sig > 128) {
-        return POSIX_EINVAL;
-    }
+static void SendSignal(Pthread* thread, s32 sig) {
     LOG_INFO(Lib_Kernel, "Raising signal {} on thread '{}'", sig, thread->name);
     thread->QueueSignal(sig);
 
     if (!thread->IsSignalBlocked(sig)) {
         thread->WakeForSignal();
     }
+}
+
+s32 PS4_SYSV_ABI posix_pthread_kill(PthreadT thread, s32 sig) {
+    if (sig < 0 || sig > 128) {
+        return POSIX_EINVAL;
+    }
+    if (thread == g_curthread) {
+        if (sig > 0) {
+            SendSignal(thread, sig);
+        }
+        return ORBIS_OK;
+    }
+
+    // The thread lock keeps the target from exiting while the signal is delivered.
+    auto* thread_state = ThrState::Instance();
+    if (const s32 ret = thread_state->FindThread(thread, /*include dead*/ false); ret != 0) {
+        return ret;
+    }
+    if (sig > 0) {
+        SendSignal(thread, sig);
+    }
+    thread->lock->unlock();
     return ORBIS_OK;
 }
 
@@ -623,10 +643,10 @@ s32 PS4_SYSV_ABI sceKernelRaiseException(PthreadT thread, s32 signum) {
         return ORBIS_KERNEL_ERROR_EINVAL;
     }
     s32 const ret = posix_pthread_kill(thread, signum);
-    if (ret < 0) {
+    if (ret != 0) {
         return ErrnoToSceKernelError(ret);
     }
-    return ret;
+    return ORBIS_OK;
 }
 
 s32 PS4_SYSV_ABI sceKernelDebugRaiseException(u32 error, s64 unk) {
